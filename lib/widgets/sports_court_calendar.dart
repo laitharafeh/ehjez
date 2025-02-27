@@ -44,7 +44,7 @@ class _SportsCourtCalendarState extends State<SportsCourtCalendar> {
           .eq('id', widget.courtId)
           .single();
 
-      if (response != null) {
+      if (response.isNotEmpty) {
         final now = DateTime.now();
         _courtStartTime = DateTime(
           now.year,
@@ -308,7 +308,7 @@ class _SportsCourtCalendarState extends State<SportsCourtCalendar> {
                 ],
               ),
             );
-          }).toList(),
+          }) //.toList(),
         ] else
           const Padding(
             padding: EdgeInsets.symmetric(horizontal: 16),
