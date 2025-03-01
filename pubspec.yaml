@@ -68,6 +68,10 @@ flutter:
     - assets/padel_cut.PNG
     - assets/football2.jpg
     - assets/football_cat.png
+    - assets/tennis_ball.png
+    - assets/badminton_ball.png
+    - assets/basketball.png
+    - assets/volleyball.png
   #   - images/a_dot_ham.jpeg
 
   # An image asset can refer to one or more resolution-specific "variants", see

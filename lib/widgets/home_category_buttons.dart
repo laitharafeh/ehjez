@@ -36,28 +36,28 @@ class HomeCategoryButtons extends StatelessWidget {
                   onGoToSearch("Tennis");
                 },
                 text: "Tennis",
-                assetPath: 'assets/padel_cut.PNG'),
+                assetPath: 'assets/tennis_ball.png'),
             const SizedBox(width: 10),
             CustomSquareButton(
                 onTap: () {
                   onGoToSearch("Badminton");
                 },
                 text: "Badminton",
-                assetPath: 'assets/padel_cut.PNG'),
+                assetPath: 'assets/badminton_ball.png'),
             const SizedBox(width: 10),
             CustomSquareButton(
                 onTap: () {
                   onGoToSearch("Basketball");
                 },
                 text: "Basketball",
-                assetPath: 'assets/padel_cut.PNG'),
+                assetPath: 'assets/basketball.png'),
             const SizedBox(width: 10),
             CustomSquareButton(
                 onTap: () {
                   onGoToSearch("Volleyball");
                 },
                 text: "Volleyball",
-                assetPath: 'assets/padel_cut.PNG'),
+                assetPath: 'assets/volleyball.png'),
             const SizedBox(width: 10),
           ],
         ),
