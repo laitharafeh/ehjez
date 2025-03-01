@@ -1,6 +1,5 @@
 import 'package:ehjez/screens/court_details_screen.dart';
 import 'package:ehjez/widgets/custom_app_bar.dart';
-//import 'package:ehjez/widgets/custom_square_button.dart';
 import 'package:ehjez/widgets/featured_court_list_tile.dart';
 import 'package:ehjez/widgets/home_category_buttons.dart';
 import 'package:flutter/material.dart';
