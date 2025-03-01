@@ -1,3 +1,4 @@
+import 'package:ehjez/screens/court_details_screen.dart';
 import 'package:ehjez/widgets/custom_app_bar.dart';
 //import 'package:ehjez/widgets/custom_square_button.dart';
 import 'package:ehjez/widgets/featured_court_list_tile.dart';
@@ -91,16 +92,44 @@ class _HomeScreenState extends State<HomeScreen> {
                       itemCount: featuredCourts.length,
                       itemBuilder: (context, index) {
                         final court = featuredCourts[index];
-                        return Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 8.0),
-                          child: SizedBox(
-                            width: 250, // Set fixed width for horizontal cards
+                        return GestureDetector(
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => CourtDetailsScreen(
+                                  id: court['id'],
+                                  name: court['name'] ?? "Unknown",
+                                  category: court['category'] ?? "N/A",
+                                  location:
+                                      court['location'] ?? "Not specified",
+                                  phone: court['phone'] ?? "No contact",
+                                  size: court['size'] ?? "N/A",
+                                  price: court['price'] ?? "N/A",
+                                  imageUrl: court['image_url'] ?? "",
+                                  image2Url: court['image2_url'] ?? "",
+                                  image3Url: court['image3_url'] ?? "",
+                                ),
+                              ),
+                            );
+                          },
+                          child: Padding(
+                            padding:
+                                const EdgeInsets.symmetric(horizontal: 8.0),
                             child: FeaturedCourtListTile(
-                              name: court['name'] ?? "Unknown",
-                              category: court['category'] ?? "N/A",
-                              location: court['location'] ?? "Not specified",
-                              imageUrl: court['image_url'] ?? "",
-                            ),
+                                name: court['name'],
+                                category: court['category'],
+                                location: court['location'],
+                                imageUrl: court['image_url']),
+                            // child: SizedBox(
+                            //   width: 250, // Set fixed width for horizontal cards
+                            //   child: FeaturedCourtListTile(
+                            //     name: court['name'] ?? "Unknown",
+                            //     category: court['category'] ?? "N/A",
+                            //     location: court['location'] ?? "Not specified",
+                            //     imageUrl: court['image_url'] ?? "",
+                            //   ),
+                            // ),
                           ),
                         );
                       },

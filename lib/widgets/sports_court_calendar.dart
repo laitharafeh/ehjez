@@ -226,7 +226,7 @@ class _SportsCourtCalendarState extends State<SportsCourtCalendar> {
             children: [
               const Text(
                 'Select Duration',
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 8),
               Center(
@@ -267,7 +267,7 @@ class _SportsCourtCalendarState extends State<SportsCourtCalendar> {
                 child: Text(
                   'Available Times for ${_selectedDay!.day}/${_selectedDay!.month}/${_selectedDay!.year}',
                   style: const TextStyle(
-                      fontSize: 18, fontWeight: FontWeight.bold),
+                      fontSize: 17, fontWeight: FontWeight.bold),
                 ),
               ),
               IconButton(
