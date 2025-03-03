@@ -73,7 +73,10 @@ class CourtDetailsScreen extends StatelessWidget {
                   _infoRow(Icons.attach_money, "Price", price),
                   ElevatedButton(
                     onPressed: _launchURL,
-                    child: const Text("Open Link"),
+                    child: const Text(
+                      "Location test",
+                      style: TextStyle(color: Color(0xFF068631)),
+                    ),
                   ),
                   //const SizedBox(height: 10),
                   SportsCourtCalendar(
