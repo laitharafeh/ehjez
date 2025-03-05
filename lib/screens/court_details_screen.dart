@@ -74,7 +74,7 @@ class CourtDetailsScreen extends StatelessWidget {
                   ElevatedButton(
                     onPressed: _launchURL,
                     child: const Text(
-                      "Location test",
+                      "Location",
                       style: TextStyle(color: Color(0xFF068631)),
                     ),
                   ),
