@@ -21,9 +21,12 @@ class _SportsCourtCalendarState extends State<SportsCourtCalendar> {
   DateTime? _selectedDay;
   final Map<DateTime, List<Map<String, dynamic>>> _reservations = {};
   bool _isLoading = false;
-  int _selectedDuration = 2; // Default to 2 hours
+  int _selectedDuration = 2;
   DateTime? _courtStartTime;
   DateTime? _courtEndTime;
+  Map<String, int> _courtSizes = {};
+  String? _selectedSize;
+  int? _numberOfFields;
 
   @override
   void initState() {
@@ -33,14 +36,14 @@ class _SportsCourtCalendarState extends State<SportsCourtCalendar> {
     _fetchCourtTime();
   }
 
-  /// Fetches the court's start and end time from Supabase
   Future<void> _fetchCourtTime() async {
     setState(() => _isLoading = true);
 
     try {
       final response = await Supabase.instance.client
           .from('courts')
-          .select('start_time, end_time')
+          .select(
+              'start_time, end_time, size1, number_of_fields1, size2, number_of_fields2, size3, number_of_fields3')
           .eq('id', widget.courtId)
           .single();
 
@@ -51,25 +54,40 @@ class _SportsCourtCalendarState extends State<SportsCourtCalendar> {
           now.month,
           now.day,
           int.parse(response['start_time'].split(':')[0]),
-          0, // Set to HH:00 as requested
+          0,
         );
         _courtEndTime = DateTime(
           now.year,
           now.month,
           now.day,
           int.parse(response['end_time'].split(':')[0]),
-          0, // Set to HH:00 as requested
+          0,
         );
+
+        _courtSizes.clear();
+        if (response['size1'] != null && response['number_of_fields1'] > 0) {
+          _courtSizes[response['size1']] = response['number_of_fields1'];
+        }
+        if (response['size2'] != null && response['number_of_fields2'] > 0) {
+          _courtSizes[response['size2']] = response['number_of_fields2'];
+        }
+        if (response['size3'] != null && response['number_of_fields3'] > 0) {
+          _courtSizes[response['size3']] = response['number_of_fields3'];
+        }
+
+        if (_courtSizes.isNotEmpty) {
+          _selectedSize = _courtSizes.keys.first;
+          _numberOfFields = _courtSizes[_selectedSize];
+        }
 
         await _fetchReservations();
       }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error loading court time: $e')),
+          SnackBar(content: Text('Error loading court data: $e')),
         );
       }
-      // Fallback to defaults if fetch fails
       _courtStartTime = DateTime.now().copyWith(hour: 8, minute: 0);
       _courtEndTime = DateTime.now().copyWith(hour: 22, minute: 0);
       await _fetchReservations();
@@ -78,8 +96,9 @@ class _SportsCourtCalendarState extends State<SportsCourtCalendar> {
     }
   }
 
-  /// Fetches reservations from Supabase
   Future<void> _fetchReservations() async {
+    if (_selectedSize == null) return;
+
     setState(() => _isLoading = true);
 
     try {
@@ -87,6 +106,7 @@ class _SportsCourtCalendarState extends State<SportsCourtCalendar> {
           .from('reservations')
           .select()
           .eq('court_id', widget.courtId)
+          .eq('size', _selectedSize!)
           .gte('date', DateTime.now().toIso8601String().split('T')[0])
           .order('start_time', ascending: true);
 
@@ -108,6 +128,7 @@ class _SportsCourtCalendarState extends State<SportsCourtCalendar> {
           'start_time': startTime,
           'duration': reservation['duration'],
           'user_id': reservation['user_id'],
+          'size': reservation['size'],
         });
       }
     } catch (e) {
@@ -121,9 +142,53 @@ class _SportsCourtCalendarState extends State<SportsCourtCalendar> {
     }
   }
 
-  /// Returns available time slots dynamically based on the court's schedule
+  int _getMaxConcurrency(DateTime slotStart, DateTime slotEnd,
+      List<Map<String, dynamic>> reservations) {
+    List<Map<String, dynamic>> overlapping = reservations.where((r) {
+      DateTime rStart = r['start_time'];
+      DateTime rEnd = rStart.add(Duration(hours: r['duration']));
+      return rStart.isBefore(slotEnd) && rEnd.isAfter(slotStart);
+    }).toList();
+
+    List<Map<String, dynamic>> events = [];
+    for (var r in overlapping) {
+      DateTime rStart = r['start_time'];
+      DateTime rEnd = rStart.add(Duration(hours: r['duration']));
+      DateTime effectiveStart = rStart.isAfter(slotStart) ? rStart : slotStart;
+      DateTime effectiveEnd = rEnd.isBefore(slotEnd) ? rEnd : slotEnd;
+      events.add({'time': effectiveStart, 'type': 'start'});
+      events.add({'time': effectiveEnd, 'type': 'end'});
+    }
+
+    events.sort((a, b) {
+      int cmp = a['time'].compareTo(b['time']);
+      if (cmp == 0) {
+        if (a['type'] == 'end' && b['type'] == 'start') return -1;
+        if (a['type'] == 'start' && b['type'] == 'end') return 1;
+      }
+      return cmp;
+    });
+
+    int counter = 0;
+    int maxCounter = 0;
+    for (var event in events) {
+      if (event['type'] == 'start') {
+        counter++;
+        if (counter > maxCounter) maxCounter = counter;
+      } else {
+        counter--;
+      }
+    }
+    return maxCounter;
+  }
+
   List<Map<String, dynamic>> _getAvailableSlots(DateTime day) {
-    if (_courtStartTime == null || _courtEndTime == null) return [];
+    if (_courtStartTime == null ||
+        _courtEndTime == null ||
+        _selectedSize == null ||
+        _numberOfFields == null) {
+      return [];
+    }
 
     final dayStart =
         DateTime(day.year, day.month, day.day, _courtStartTime!.hour, 0);
@@ -137,36 +202,34 @@ class _SportsCourtCalendarState extends State<SportsCourtCalendar> {
 
     while (currentTime.isBefore(dayEnd)) {
       final slotEnd = currentTime.add(Duration(hours: _selectedDuration));
-
-      bool isReserved = reservedTimes.any((r) {
-        final start = r['start_time'] as DateTime;
-        final end = start.add(Duration(hours: r['duration'] as int));
-        return currentTime.isBefore(end) && slotEnd.isAfter(start);
-      });
+      bool isAvailable;
 
       if (slotEnd.isAfter(dayEnd)) {
-        isReserved = true; // Mark as reserved if it exceeds end time
+        isAvailable = false;
+      } else {
+        final maxConcurrency =
+            _getMaxConcurrency(currentTime, slotEnd, reservedTimes);
+        isAvailable = maxConcurrency < _numberOfFields!;
       }
 
       slots.add({
         'time': currentTime,
-        'isAvailable': !isReserved,
+        'isAvailable': isAvailable,
       });
 
-      currentTime = currentTime.add(const Duration(hours: 1)); // Step by 1 hour
+      currentTime = currentTime.add(const Duration(hours: 1));
     }
 
     return slots;
   }
 
-  /// Formats a DateTime hour to 12-hour format with AM/PM
   String _formatHour(DateTime time) {
     int hour = time.hour;
     String period = hour >= 12 ? 'PM' : 'AM';
     if (hour == 0) {
-      hour = 12; // Midnight
+      hour = 12;
     } else if (hour > 12) {
-      hour -= 12; // Convert to 12-hour
+      hour -= 12;
     }
     return '$hour:00 $period';
   }
@@ -188,6 +251,32 @@ class _SportsCourtCalendarState extends State<SportsCourtCalendar> {
                 const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
           ),
         ),
+        if (_courtSizes.isNotEmpty) ...[
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            child: DropdownButton<String>(
+              value: _selectedSize,
+              hint: const Text('Select Court Size'),
+              onChanged: (newValue) {
+                setState(() {
+                  _selectedSize = newValue;
+                  _numberOfFields = _courtSizes[newValue];
+                });
+                _fetchReservations();
+              },
+              items: _courtSizes.keys.map((size) {
+                return DropdownMenuItem(
+                  value: size,
+                  child: Text(size),
+                );
+              }).toList(),
+            ),
+          ),
+        ] else
+          const Padding(
+            padding: EdgeInsets.symmetric(horizontal: 16),
+            child: Text('No sizes available for this court'),
+          ),
         TableCalendar(
           availableGestures: AvailableGestures.horizontalSwipe,
           firstDay: DateTime.now(),
@@ -210,15 +299,11 @@ class _SportsCourtCalendarState extends State<SportsCourtCalendar> {
               shape: BoxShape.circle,
             ),
           ),
-          availableCalendarFormats: const {
-            CalendarFormat.month: 'Month',
-          },
+          availableCalendarFormats: const {CalendarFormat.month: 'Month'},
           calendarFormat: CalendarFormat.month,
           onFormatChanged: null,
         ),
         const Divider(),
-
-        // Duration Selection Toggle
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
           child: Column(
@@ -258,14 +343,13 @@ class _SportsCourtCalendarState extends State<SportsCourtCalendar> {
             ],
           ),
         ),
-
-        if (_selectedDay != null) ...[
+        if (_selectedDay != null && _selectedSize != null) ...[
           Row(
             children: [
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 16),
                 child: Text(
-                  'Available Times for ${_selectedDay!.day}/${_selectedDay!.month}/${_selectedDay!.year}',
+                  'Available Times for ${_selectedDay!.day}/${_selectedDay!.month}/${_selectedDay!.year} ($_selectedSize)',
                   style: const TextStyle(
                       fontSize: 17, fontWeight: FontWeight.bold),
                 ),
@@ -308,11 +392,11 @@ class _SportsCourtCalendarState extends State<SportsCourtCalendar> {
                 ],
               ),
             );
-          }) //.toList(),
+          }),
         ] else
           const Padding(
             padding: EdgeInsets.symmetric(horizontal: 16),
-            child: Text('Select a day to view available slots'),
+            child: Text('Select a day and size to view available slots'),
           ),
       ],
     );
