@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:ehjez/screens/court_details_screen.dart';
 import 'package:ehjez/widgets/category_button.dart';
 import 'package:ehjez/widgets/court_list_tile.dart';
@@ -17,6 +18,7 @@ class SearchScreen extends StatefulWidget {
 class _SearchScreenState extends State<SearchScreen> {
   final SupabaseClient supabase = Supabase.instance.client;
   late Future<List<Map<String, dynamic>>> _courtsFuture;
+  Timer? _debounce;
 
   final List<String> categories = [
     "All",
@@ -35,41 +37,46 @@ class _SearchScreenState extends State<SearchScreen> {
   void initState() {
     super.initState();
     _selectedCategory = widget.selectedCategory;
-    _courtsFuture = fetchCourts(); // Fetch courts asynchronously
+    _courtsFuture =
+        fetchCourts(category: _selectedCategory); // Fetch with initial category
   }
 
-  Future<List<Map<String, dynamic>>> fetchCourts() async {
+  Future<List<Map<String, dynamic>>> fetchCourts({
+    String? category,
+    String? searchQuery,
+  }) async {
     try {
-      final List<Map<String, dynamic>> response =
-          await supabase.from('courts').select();
+      var query = supabase.from('courts').select();
+      if (category != null && category != "All") {
+        query = query.eq('category', category);
+      }
+      if (searchQuery != null && searchQuery.isNotEmpty) {
+        query = query.ilike('name', '%$searchQuery%');
+      }
+      final List<Map<String, dynamic>> response = await query;
       return response;
     } catch (error) {
       debugPrint("Error fetching courts: $error");
-      return [];
+      rethrow; // Propagate error to FutureBuilder
     }
-  }
-
-  List<Map<String, dynamic>> _applyFilters(List<Map<String, dynamic>> courts) {
-    return courts.where((court) {
-      final nameMatches = court['name'].toLowerCase().contains(_searchQuery);
-      final categoryMatches =
-          court['category'].toLowerCase().contains(_searchQuery);
-      final categoryFilter =
-          _selectedCategory == "All" || court['category'] == _selectedCategory;
-
-      return (nameMatches || categoryMatches) && categoryFilter;
-    }).toList();
-  }
-
-  void _filterSearchResults(String query) {
-    setState(() {
-      _searchQuery = query.toLowerCase();
-    });
   }
 
   void onCategorySelected(String category) {
     setState(() {
       _selectedCategory = category;
+      _courtsFuture =
+          fetchCourts(category: _selectedCategory, searchQuery: _searchQuery);
+    });
+  }
+
+  void _filterSearchResults(String query) {
+    if (_debounce?.isActive ?? false) _debounce!.cancel();
+    _debounce = Timer(const Duration(milliseconds: 500), () {
+      setState(() {
+        _searchQuery = query.toLowerCase();
+        _courtsFuture =
+            fetchCourts(category: _selectedCategory, searchQuery: _searchQuery);
+      });
     });
   }
 
@@ -106,24 +113,18 @@ class _SearchScreenState extends State<SearchScreen> {
               future: _courtsFuture,
               builder: (context, snapshot) {
                 if (snapshot.connectionState == ConnectionState.waiting) {
-                  return const Center(
-                      child: CircularProgressIndicator()); // Show loading
+                  return const Center(child: CircularProgressIndicator());
                 } else if (snapshot.hasError) {
                   return const Center(child: Text("Failed to load courts"));
                 } else {
                   List<Map<String, dynamic>> courts = snapshot.data ?? [];
-                  List<Map<String, dynamic>> filteredCourts =
-                      _applyFilters(courts);
-
-                  if (filteredCourts.isEmpty) {
+                  if (courts.isEmpty) {
                     return const Center(child: Text("No courts found"));
                   }
-
                   return ListView.builder(
-                    itemCount: filteredCourts.length,
+                    itemCount: courts.length,
                     itemBuilder: (context, index) {
-                      final court = filteredCourts[index];
-
+                      final court = courts[index];
                       return GestureDetector(
                         onTap: () {
                           Navigator.push(
@@ -163,5 +164,11 @@ class _SearchScreenState extends State<SearchScreen> {
         ],
       ),
     );
+  }
+
+  @override
+  void dispose() {
+    _debounce?.cancel();
+    super.dispose();
   }
 }
