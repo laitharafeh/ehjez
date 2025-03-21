@@ -3,6 +3,7 @@ import 'package:ehjez/widgets/image_slider.dart';
 import 'package:ehjez/widgets/sports_court_calendar.dart';
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:url_launcher/url_launcher_string.dart';
 
 class CourtDetailsScreen extends StatelessWidget {
   final String id;
@@ -32,6 +33,7 @@ class CourtDetailsScreen extends StatelessWidget {
 
   Future<void> _launchURL() async {
     final Uri uri = Uri.parse('https://maps.app.goo.gl/UTYee2MTPFi67wna9');
+
     if (await canLaunchUrl(uri)) {
       await launchUrl(uri, mode: LaunchMode.externalApplication);
     } else {
@@ -69,7 +71,6 @@ class CourtDetailsScreen extends StatelessWidget {
                   _infoRow(Icons.sports_soccer, "Category", category),
                   _infoRow(Icons.location_on, "Location", location),
                   _infoRow(Icons.phone, "Phone", phone),
-                  _infoRow(Icons.aspect_ratio, "Size", size),
                   _infoRow(Icons.attach_money, "Price", price),
                   ElevatedButton(
                     onPressed: _launchURL,

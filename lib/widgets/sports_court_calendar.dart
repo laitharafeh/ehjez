@@ -1,3 +1,4 @@
+import 'package:ehjez/constants.dart';
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:table_calendar/table_calendar.dart';
@@ -65,13 +66,22 @@ class _SportsCourtCalendarState extends State<SportsCourtCalendar> {
         );
 
         _courtSizes.clear();
-        if (response['size1'] != null && response['number_of_fields1'] > 0) {
+        // Mandatory size1: check for null, empty, and valid number of fields
+        if (response['size1'] != null &&
+            response['size1'].isNotEmpty &&
+            response['number_of_fields1'] > 0) {
           _courtSizes[response['size1']] = response['number_of_fields1'];
         }
-        if (response['size2'] != null && response['number_of_fields2'] > 0) {
+        // Optional size2: only add if non-null, non-empty, and valid number of fields
+        if (response['size2'] != null &&
+            response['size2'].isNotEmpty &&
+            response['number_of_fields2'] > 0) {
           _courtSizes[response['size2']] = response['number_of_fields2'];
         }
-        if (response['size3'] != null && response['number_of_fields3'] > 0) {
+        // Optional size3: only add if non-null, non-empty, and valid number of fields
+        if (response['size3'] != null &&
+            response['size3'].isNotEmpty &&
+            response['number_of_fields3'] > 0) {
           _courtSizes[response['size3']] = response['number_of_fields3'];
         }
 
@@ -254,20 +264,34 @@ class _SportsCourtCalendarState extends State<SportsCourtCalendar> {
         if (_courtSizes.isNotEmpty) ...[
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            child: DropdownButton<String>(
-              value: _selectedSize,
-              hint: const Text('Select Court Size'),
-              onChanged: (newValue) {
-                setState(() {
-                  _selectedSize = newValue;
-                  _numberOfFields = _courtSizes[newValue];
-                });
-                _fetchReservations();
-              },
-              items: _courtSizes.keys.map((size) {
-                return DropdownMenuItem(
-                  value: size,
-                  child: Text(size),
+            child: Wrap(
+              spacing: 8.0, // Horizontal space between cards
+              runSpacing: 8.0, // Vertical space between cards
+              children: _courtSizes.keys.map((size) {
+                return GestureDetector(
+                  onTap: () {
+                    setState(() {
+                      _selectedSize = size;
+                      _numberOfFields = _courtSizes[size];
+                    });
+                    _fetchReservations();
+                  },
+                  child: Card(
+                    elevation: 4, // Adds a shadow for card-like appearance
+                    color: _selectedSize == size ? ehjezGreen : Colors.white,
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 16, vertical: 8),
+                      child: Text(
+                        size,
+                        style: TextStyle(
+                          color: _selectedSize == size
+                              ? Colors.white
+                              : Colors.black,
+                        ),
+                      ),
+                    ),
+                  ),
                 );
               }).toList(),
             ),
@@ -354,11 +378,11 @@ class _SportsCourtCalendarState extends State<SportsCourtCalendar> {
                       fontSize: 17, fontWeight: FontWeight.bold),
                 ),
               ),
-              IconButton(
-                icon: const Icon(Icons.refresh),
-                onPressed: _fetchReservations,
-                tooltip: 'Refresh Reservations',
-              ),
+              // IconButton(
+              //   icon: const Icon(Icons.refresh),
+              //   onPressed: _fetchReservations,
+              //   tooltip: 'Refresh Reservations',
+              // ),
             ],
           ),
           const SizedBox(height: 8),
