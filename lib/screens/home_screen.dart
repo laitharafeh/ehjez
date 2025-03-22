@@ -18,11 +18,13 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   final SupabaseClient supabase = Supabase.instance.client;
   List<Map<String, dynamic>> featuredCourts = [];
+  List<Map<String, dynamic>> listOf6v6Courts = [];
 
   @override
   void initState() {
     super.initState();
     fetchFeaturedCourts();
+    fetch6v6Courts();
   }
 
   Future<void> fetchFeaturedCourts() async {
@@ -35,6 +37,23 @@ class _HomeScreenState extends State<HomeScreen> {
 
       setState(() {
         featuredCourts = response;
+      });
+    } catch (error) {
+      debugPrint("Error fetching courts: $error");
+    }
+  }
+
+  Future<void> fetch6v6Courts() async {
+    try {
+      final List<Map<String, dynamic>> response = await supabase
+          .from('courts')
+          .select()
+          .or('size1.eq.6v6,size2.eq.6v6,size3.eq.6v6')
+          .limit(5); // Limit to 5 featured courts
+      if (!mounted) return;
+
+      setState(() {
+        listOf6v6Courts = response;
       });
     } catch (error) {
       debugPrint("Error fetching courts: $error");
@@ -142,13 +161,13 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
             SizedBox(
               height: 141, // Adjust height for horizontal cards
-              child: featuredCourts.isEmpty
+              child: listOf6v6Courts.isEmpty
                   ? const Center(child: CircularProgressIndicator())
                   : ListView.builder(
                       scrollDirection: Axis.horizontal,
-                      itemCount: featuredCourts.length,
+                      itemCount: listOf6v6Courts.length,
                       itemBuilder: (context, index) {
-                        final court = featuredCourts[index];
+                        final court = listOf6v6Courts[index];
                         return GestureDetector(
                           onTap: () {
                             Navigator.push(

@@ -17,7 +17,7 @@ class SearchScreen extends StatefulWidget {
 
 class _SearchScreenState extends State<SearchScreen> {
   final SupabaseClient supabase = Supabase.instance.client;
-  late Future<List<Map<String, dynamic>>> _courtsFuture;
+  final ScrollController _scrollController = ScrollController();
   Timer? _debounce;
 
   final List<String> categories = [
@@ -32,50 +32,82 @@ class _SearchScreenState extends State<SearchScreen> {
 
   late String _selectedCategory;
   String _searchQuery = "";
+  List<Map<String, dynamic>> _courts = []; // List to store courts
+  bool _isLoading = false; // Loading state
+  bool _hasMore = true; // Whether more data is available
+  int _page = 0; // Current page
+  final int _pageSize = 10; // Number of items per page
 
   @override
   void initState() {
     super.initState();
     _selectedCategory = widget.selectedCategory;
-    _courtsFuture =
-        fetchCourts(category: _selectedCategory); // Fetch with initial category
-  }
+    _fetchCourts(); // Initial fetch
 
-  Future<List<Map<String, dynamic>>> fetchCourts({
-    String? category,
-    String? searchQuery,
-  }) async {
-    try {
-      var query = supabase.from('courts').select();
-      if (category != null && category != "All") {
-        query = query.eq('category', category);
+    // Add scroll listener to load more data
+    _scrollController.addListener(() {
+      if (_scrollController.position.pixels ==
+              _scrollController.position.maxScrollExtent &&
+          !_isLoading &&
+          _hasMore) {
+        _fetchCourts();
       }
-      if (searchQuery != null && searchQuery.isNotEmpty) {
-        query = query.ilike('name', '%$searchQuery%');
-      }
-      final List<Map<String, dynamic>> response = await query;
-      return response;
-    } catch (error) {
-      debugPrint("Error fetching courts: $error");
-      rethrow; // Propagate error to FutureBuilder
-    }
-  }
-
-  void onCategorySelected(String category) {
-    setState(() {
-      _selectedCategory = category;
-      _courtsFuture =
-          fetchCourts(category: _selectedCategory, searchQuery: _searchQuery);
     });
   }
 
+  /// Fetches courts with pagination
+  Future<void> _fetchCourts({bool reset = false}) async {
+    if (_isLoading) return; // Prevent multiple fetches
+    setState(() => _isLoading = true);
+
+    if (reset) {
+      _courts.clear(); // Clear list on reset
+      _page = 0;
+      _hasMore = true;
+    }
+
+    try {
+      var query = supabase.from('courts').select();
+      if (_selectedCategory != "All") {
+        query = query.eq('category', _selectedCategory);
+      }
+      if (_searchQuery.isNotEmpty) {
+        query = query.ilike('name', '%$_searchQuery%');
+      }
+
+      // Fetch a range of courts based on the current page
+      final response =
+          await query.range(_page * _pageSize, (_page + 1) * _pageSize - 1);
+
+      setState(() {
+        _courts.addAll(response); // Append new courts
+        _page++; // Increment page
+        if (response.length < _pageSize) {
+          _hasMore = false; // No more data to fetch
+        }
+      });
+    } catch (error) {
+      debugPrint("Error fetching courts: $error");
+    } finally {
+      setState(() => _isLoading = false);
+    }
+  }
+
+  /// Handles category selection
+  void onCategorySelected(String category) {
+    setState(() {
+      _selectedCategory = category;
+      _fetchCourts(reset: true); // Reset and fetch
+    });
+  }
+
+  /// Filters search results with debounce
   void _filterSearchResults(String query) {
     if (_debounce?.isActive ?? false) _debounce!.cancel();
     _debounce = Timer(const Duration(milliseconds: 500), () {
       setState(() {
         _searchQuery = query.toLowerCase();
-        _courtsFuture =
-            fetchCourts(category: _selectedCategory, searchQuery: _searchQuery);
+        _fetchCourts(reset: true); // Reset and fetch
       });
     });
   }
@@ -109,22 +141,17 @@ class _SearchScreenState extends State<SearchScreen> {
           ),
           const SizedBox(height: 10),
           Expanded(
-            child: FutureBuilder<List<Map<String, dynamic>>>(
-              future: _courtsFuture,
-              builder: (context, snapshot) {
-                if (snapshot.connectionState == ConnectionState.waiting) {
-                  return const Center(child: CircularProgressIndicator());
-                } else if (snapshot.hasError) {
-                  return const Center(child: Text("Failed to load courts"));
-                } else {
-                  List<Map<String, dynamic>> courts = snapshot.data ?? [];
-                  if (courts.isEmpty) {
-                    return const Center(child: Text("No courts found"));
-                  }
-                  return ListView.builder(
-                    itemCount: courts.length,
+            child: _courts.isEmpty && !_isLoading
+                ? const Center(child: Text("No courts found"))
+                : ListView.builder(
+                    controller: _scrollController,
+                    itemCount: _courts.length +
+                        (_hasMore ? 1 : 0), // Add 1 for loading indicator
                     itemBuilder: (context, index) {
-                      final court = courts[index];
+                      if (index == _courts.length) {
+                        return const Center(child: CircularProgressIndicator());
+                      }
+                      final court = _courts[index];
                       return GestureDetector(
                         onTap: () {
                           Navigator.push(
@@ -156,10 +183,7 @@ class _SearchScreenState extends State<SearchScreen> {
                         ),
                       );
                     },
-                  );
-                }
-              },
-            ),
+                  ),
           ),
         ],
       ),
@@ -169,6 +193,7 @@ class _SearchScreenState extends State<SearchScreen> {
   @override
   void dispose() {
     _debounce?.cancel();
+    _scrollController.dispose();
     super.dispose();
   }
 }

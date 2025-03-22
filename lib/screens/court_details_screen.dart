@@ -3,7 +3,6 @@ import 'package:ehjez/widgets/image_slider.dart';
 import 'package:ehjez/widgets/sports_court_calendar.dart';
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
-import 'package:url_launcher/url_launcher_string.dart';
 
 class CourtDetailsScreen extends StatelessWidget {
   final String id;
