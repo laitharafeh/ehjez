@@ -235,7 +235,7 @@ class _SportsCourtCalendarState extends State<SportsCourtCalendar> {
       children: [
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16),
-          child: Text(widget.name,
+          child: Text('Sizes',
               style: Theme.of(context).appBarTheme.titleTextStyle ??
                   const TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
         ),

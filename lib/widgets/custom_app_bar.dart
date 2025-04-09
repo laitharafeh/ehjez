@@ -26,7 +26,7 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
               ),
             );
           },
-          icon: const Icon(Icons.logout),
+          icon: const Icon(Icons.person),
         )
       ],
     );

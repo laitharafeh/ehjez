@@ -1,4 +1,5 @@
 //import 'package:ehjez/widgets/custom_app_bar.dart';
+import 'package:ehjez/constants.dart';
 import 'package:ehjez/widgets/image_slider.dart';
 import 'package:ehjez/widgets/sports_court_calendar.dart';
 import 'package:flutter/material.dart';
@@ -66,24 +67,51 @@ class CourtDetailsScreen extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  //_infoRow(Icons.sports, "Name", name),
-                  _infoRow(Icons.sports_soccer, "Category", category),
-                  _infoRow(Icons.location_on, "Location", location),
-                  _infoRow(Icons.phone, "Phone", phone),
-                  _infoRow(Icons.attach_money, "Price", price),
-                  ElevatedButton(
-                    onPressed: _launchURL,
-                    child: const Text(
-                      "Location",
-                      style: TextStyle(color: Color(0xFF068631)),
+                  Card(
+                    elevation: 3,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    child: Padding(
+                      padding: const EdgeInsets.all(16.0),
+                      child: Column(
+                        children: [
+                          _infoRow(Icons.sports_soccer, "Category", category),
+                          _infoRow(Icons.location_on, "Location", location),
+                          _infoRow(Icons.phone, "Phone", phone),
+                          _infoRow(Icons.attach_money, "Price", price),
+                          const SizedBox(height: 10),
+                          SizedBox(
+                            width: double.infinity,
+                            child: ElevatedButton.icon(
+                              onPressed: _launchURL,
+                              icon: const Icon(Icons.map, color: Colors.white),
+                              label: const Text(
+                                "Open in Maps",
+                                style: TextStyle(color: Colors.white),
+                              ),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: ehjezGreen,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
                   ),
-                  //const SizedBox(height: 10),
+
+                  const SizedBox(height: 15),
+
+                  // Calendar
                   SportsCourtCalendar(
                     courtId: id,
                     name: name,
                   ),
-                  const SizedBox(height: 50)
+
+                  const SizedBox(height: 50),
                 ],
               ),
             ),
