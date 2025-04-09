@@ -5,6 +5,7 @@ import 'package:ehjez/widgets/home_category_buttons.dart';
 import 'package:ehjez/widgets/size_court_list_tile.dart';
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:cached_network_image/cached_network_image.dart'; // Add this package
 
 class HomeScreen extends StatefulWidget {
   final Function onGoToSearch;
@@ -19,12 +20,13 @@ class _HomeScreenState extends State<HomeScreen> {
   final SupabaseClient supabase = Supabase.instance.client;
   List<Map<String, dynamic>> featuredCourts = [];
   List<Map<String, dynamic>> listOf6v6Courts = [];
+  List<Map<String, dynamic>> listOf8v8Courts = [];
+  List<Map<String, dynamic>> listOfPadelCourts = [];
 
   @override
   void initState() {
     super.initState();
     fetchFeaturedCourts();
-    fetch6v6Courts();
   }
 
   Future<void> fetchFeaturedCourts() async {
@@ -32,28 +34,37 @@ class _HomeScreenState extends State<HomeScreen> {
       final List<Map<String, dynamic>> response = await supabase
           .from('courts')
           .select()
+          .eq('featured', true)
           .limit(5); // Limit to 5 featured courts
+
+      final List<Map<String, dynamic>> response2 = await supabase
+          .from('courts')
+          .select()
+          .eq('featured', true)
+          .or('size1.eq.6v6,size2.eq.6v6,size3.eq.6v6')
+          .limit(5); // Limit to 5 featured courts
+
+      final List<Map<String, dynamic>> response3 = await supabase
+          .from('courts')
+          .select()
+          .eq('featured', true)
+          .or('category.eq.Padel')
+          .limit(5); // Limit to 5 featured courts
+
+      final List<Map<String, dynamic>> response4 = await supabase
+          .from('courts')
+          .select()
+          .eq('featured', true)
+          .or('size1.eq.8v8,size2.eq.8v8,size3.eq.8v8')
+          .limit(5); // Limit to 5 featured courts
+
       if (!mounted) return;
 
       setState(() {
         featuredCourts = response;
-      });
-    } catch (error) {
-      debugPrint("Error fetching courts: $error");
-    }
-  }
-
-  Future<void> fetch6v6Courts() async {
-    try {
-      final List<Map<String, dynamic>> response = await supabase
-          .from('courts')
-          .select()
-          .or('size1.eq.6v6,size2.eq.6v6,size3.eq.6v6')
-          .limit(5); // Limit to 5 featured courts
-      if (!mounted) return;
-
-      setState(() {
-        listOf6v6Courts = response;
+        listOf6v6Courts = response2;
+        listOfPadelCourts = response3;
+        listOf8v8Courts = response4;
       });
     } catch (error) {
       debugPrint("Error fetching courts: $error");
@@ -218,6 +229,70 @@ class _HomeScreenState extends State<HomeScreen> {
               child: Align(
                 alignment: Alignment.centerLeft,
                 child: Text(
+                  "Padel",
+                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                ),
+              ),
+            ),
+            SizedBox(
+              height: 141, // Adjust height for horizontal cards
+              child: listOfPadelCourts.isEmpty
+                  ? const Center(child: CircularProgressIndicator())
+                  : ListView.builder(
+                      scrollDirection: Axis.horizontal,
+                      itemCount: listOfPadelCourts.length,
+                      itemBuilder: (context, index) {
+                        final court = listOfPadelCourts[index];
+                        return GestureDetector(
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => CourtDetailsScreen(
+                                  id: court['id'],
+                                  name: court['name'] ?? "Unknown",
+                                  category: court['category'] ?? "N/A",
+                                  location:
+                                      court['location'] ?? "Not specified",
+                                  phone: court['phone'] ?? "No contact",
+                                  size: court['size'] ?? "N/A",
+                                  price: court['price'] ?? "N/A",
+                                  imageUrl: court['image_url'] ?? "",
+                                  image2Url: court['image2_url'] ?? "",
+                                  image3Url: court['image3_url'] ?? "",
+                                ),
+                              ),
+                            );
+                          },
+                          child: Padding(
+                            padding:
+                                const EdgeInsets.symmetric(horizontal: 8.0),
+                            child: SizeCourtListTile(
+                                name: court['name'],
+                                category: court['category'],
+                                location: court['location'],
+                                imageUrl: court['image_url']),
+                            // child: SizedBox(
+                            //   width: 250, // Set fixed width for horizontal cards
+                            //   child: FeaturedCourtListTile(
+                            //     name: court['name'] ?? "Unknown",
+                            //     category: court['category'] ?? "N/A",
+                            //     location: court['location'] ?? "Not specified",
+                            //     imageUrl: court['image_url'] ?? "",
+                            //   ),
+                            // ),
+                          ),
+                        );
+                      },
+                    ),
+            ),
+
+            const SizedBox(height: 15),
+            const Padding(
+              padding: EdgeInsets.symmetric(horizontal: 16.0),
+              child: Align(
+                alignment: Alignment.centerLeft,
+                child: Text(
                   "8 vs 8",
                   style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
                 ),
@@ -225,13 +300,13 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
             SizedBox(
               height: 141, // Adjust height for horizontal cards
-              child: featuredCourts.isEmpty
+              child: listOf8v8Courts.isEmpty
                   ? const Center(child: CircularProgressIndicator())
                   : ListView.builder(
                       scrollDirection: Axis.horizontal,
-                      itemCount: featuredCourts.length,
+                      itemCount: listOf8v8Courts.length,
                       itemBuilder: (context, index) {
-                        final court = featuredCourts[index];
+                        final court = listOf8v8Courts[index];
                         return GestureDetector(
                           onTap: () {
                             Navigator.push(

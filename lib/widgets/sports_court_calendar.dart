@@ -50,35 +50,25 @@ class _SportsCourtCalendarState extends State<SportsCourtCalendar> {
 
       if (response.isNotEmpty) {
         final now = DateTime.now();
-        _courtStartTime = DateTime(
-          now.year,
-          now.month,
-          now.day,
-          int.parse(response['start_time'].split(':')[0]),
-          0,
-        );
-        _courtEndTime = DateTime(
-          now.year,
-          now.month,
-          now.day,
-          int.parse(response['end_time'].split(':')[0]),
-          0,
-        );
+        int startHour = int.parse(response['start_time'].split(':')[0]);
+        int endHour = int.parse(response['end_time'].split(':')[0]);
+
+        _courtStartTime = DateTime(now.year, now.month, now.day, startHour);
+        _courtEndTime = endHour >= startHour
+            ? DateTime(now.year, now.month, now.day, endHour)
+            : DateTime(now.year, now.month, now.day + 1, endHour);
 
         _courtSizes.clear();
-        // Mandatory size1: check for null, empty, and valid number of fields
         if (response['size1'] != null &&
             response['size1'].isNotEmpty &&
             response['number_of_fields1'] > 0) {
           _courtSizes[response['size1']] = response['number_of_fields1'];
         }
-        // Optional size2: only add if non-null, non-empty, and valid number of fields
         if (response['size2'] != null &&
             response['size2'].isNotEmpty &&
             response['number_of_fields2'] > 0) {
           _courtSizes[response['size2']] = response['number_of_fields2'];
         }
-        // Optional size3: only add if non-null, non-empty, and valid number of fields
         if (response['size3'] != null &&
             response['size3'].isNotEmpty &&
             response['number_of_fields3'] > 0) {
@@ -99,7 +89,8 @@ class _SportsCourtCalendarState extends State<SportsCourtCalendar> {
         );
       }
       _courtStartTime = DateTime.now().copyWith(hour: 8, minute: 0);
-      _courtEndTime = DateTime.now().copyWith(hour: 22, minute: 0);
+      _courtEndTime =
+          DateTime.now().copyWith(hour: 2, minute: 0).add(Duration(days: 1));
       await _fetchReservations();
     } finally {
       if (mounted) setState(() => _isLoading = false);
@@ -124,13 +115,10 @@ class _SportsCourtCalendarState extends State<SportsCourtCalendar> {
       for (var reservation in response as List<dynamic>) {
         final date = DateTime.parse(reservation['date']);
         final startTimeStr = reservation['start_time'] as String;
-        final startTime = DateTime(
-          date.year,
-          date.month,
-          date.day,
-          int.parse(startTimeStr.split(':')[0]),
-          int.parse(startTimeStr.split(':')[1]),
-        );
+        final startHour = int.parse(startTimeStr.split(':')[0]);
+        final startMinute = int.parse(startTimeStr.split(':')[1]);
+        final startTime =
+            DateTime(date.year, date.month, date.day, startHour, startMinute);
 
         final dateKey = DateTime(date.year, date.month, date.day);
         _reservations[dateKey] ??= [];
@@ -184,7 +172,7 @@ class _SportsCourtCalendarState extends State<SportsCourtCalendar> {
     for (var event in events) {
       if (event['type'] == 'start') {
         counter++;
-        if (counter > maxCounter) maxCounter = counter;
+        maxCounter = counter > maxCounter ? counter : maxCounter;
       } else {
         counter--;
       }
@@ -200,10 +188,14 @@ class _SportsCourtCalendarState extends State<SportsCourtCalendar> {
       return [];
     }
 
-    final dayStart =
-        DateTime(day.year, day.month, day.day, _courtStartTime!.hour, 0);
-    final dayEnd =
-        DateTime(day.year, day.month, day.day, _courtEndTime!.hour, 0);
+    final dayStart = DateTime(day.year, day.month, day.day,
+        _courtStartTime!.hour, _courtStartTime!.minute);
+    final dayEnd = _courtEndTime!.isAfter(_courtStartTime!)
+        ? DateTime(day.year, day.month, day.day, _courtEndTime!.hour,
+            _courtEndTime!.minute)
+        : DateTime(day.year, day.month, day.day + 1, _courtEndTime!.hour,
+            _courtEndTime!.minute);
+
     final reservedTimes =
         _reservations[DateTime(day.year, day.month, day.day)] ?? [];
 
@@ -212,21 +204,11 @@ class _SportsCourtCalendarState extends State<SportsCourtCalendar> {
 
     while (currentTime.isBefore(dayEnd)) {
       final slotEnd = currentTime.add(Duration(hours: _selectedDuration));
-      bool isAvailable;
-
-      if (slotEnd.isAfter(dayEnd)) {
-        isAvailable = false;
-      } else {
-        final maxConcurrency =
-            _getMaxConcurrency(currentTime, slotEnd, reservedTimes);
-        isAvailable = maxConcurrency < _numberOfFields!;
-      }
-
-      slots.add({
-        'time': currentTime,
-        'isAvailable': isAvailable,
-      });
-
+      bool isAvailable = slotEnd.isAfter(dayEnd)
+          ? false
+          : _getMaxConcurrency(currentTime, slotEnd, reservedTimes) <
+              _numberOfFields!;
+      slots.add({'time': currentTime, 'isAvailable': isAvailable});
       currentTime = currentTime.add(const Duration(hours: 1));
     }
 
@@ -246,27 +228,23 @@ class _SportsCourtCalendarState extends State<SportsCourtCalendar> {
 
   @override
   Widget build(BuildContext context) {
-    if (_isLoading) {
-      return const Center(child: CircularProgressIndicator());
-    }
+    if (_isLoading) return const Center(child: CircularProgressIndicator());
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16),
-          child: Text(
-            widget.name,
-            style: Theme.of(context).appBarTheme.titleTextStyle ??
-                const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-          ),
+          child: Text(widget.name,
+              style: Theme.of(context).appBarTheme.titleTextStyle ??
+                  const TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
         ),
         if (_courtSizes.isNotEmpty) ...[
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             child: Wrap(
-              spacing: 8.0, // Horizontal space between cards
-              runSpacing: 8.0, // Vertical space between cards
+              spacing: 8.0,
+              runSpacing: 8.0,
               children: _courtSizes.keys.map((size) {
                 return GestureDetector(
                   onTap: () {
@@ -277,19 +255,16 @@ class _SportsCourtCalendarState extends State<SportsCourtCalendar> {
                     _fetchReservations();
                   },
                   child: Card(
-                    elevation: 4, // Adds a shadow for card-like appearance
+                    elevation: 4,
                     color: _selectedSize == size ? ehjezGreen : Colors.white,
                     child: Padding(
                       padding: const EdgeInsets.symmetric(
                           horizontal: 16, vertical: 8),
-                      child: Text(
-                        size,
-                        style: TextStyle(
-                          color: _selectedSize == size
-                              ? Colors.white
-                              : Colors.black,
-                        ),
-                      ),
+                      child: Text(size,
+                          style: TextStyle(
+                              color: _selectedSize == size
+                                  ? Colors.white
+                                  : Colors.black)),
                     ),
                   ),
                 );
@@ -313,15 +288,12 @@ class _SportsCourtCalendarState extends State<SportsCourtCalendar> {
               _focusedDay = focusedDay;
             });
           },
-          eventLoader: (day) {
-            return _reservations[DateTime(day.year, day.month, day.day)] ?? [];
-          },
+          eventLoader: (day) =>
+              _reservations[DateTime(day.year, day.month, day.day)] ?? [],
           calendarStyle: const CalendarStyle(
             markersAlignment: Alignment.bottomRight,
-            selectedDecoration: BoxDecoration(
-              color: Color(0xFF068631),
-              shape: BoxShape.circle,
-            ),
+            selectedDecoration:
+                BoxDecoration(color: Color(0xFF068631), shape: BoxShape.circle),
           ),
           availableCalendarFormats: const {CalendarFormat.month: 'Month'},
           calendarFormat: CalendarFormat.month,
@@ -333,34 +305,27 @@ class _SportsCourtCalendarState extends State<SportsCourtCalendar> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text(
-                'Select Duration',
-                style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold),
-              ),
+              const Text('Select Duration',
+                  style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold)),
               const SizedBox(height: 8),
               Center(
                 child: ToggleButtons(
                   isSelected: [_selectedDuration == 1, _selectedDuration == 2],
-                  onPressed: (index) {
-                    setState(() {
-                      _selectedDuration = index + 1;
-                    });
-                  },
+                  onPressed: (index) =>
+                      setState(() => _selectedDuration = index + 1),
                   borderRadius: BorderRadius.circular(8),
                   selectedColor: Colors.white,
                   color: Colors.black,
                   fillColor: const Color(0xFF068631),
                   children: const [
                     Padding(
-                      padding:
-                          EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                      child: Text('1 Hour'),
-                    ),
+                        padding:
+                            EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                        child: Text('1 Hour')),
                     Padding(
-                      padding:
-                          EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                      child: Text('2 Hours'),
-                    ),
+                        padding:
+                            EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                        child: Text('2 Hours')),
                   ],
                 ),
               ),
@@ -368,22 +333,12 @@ class _SportsCourtCalendarState extends State<SportsCourtCalendar> {
           ),
         ),
         if (_selectedDay != null && _selectedSize != null) ...[
-          Row(
-            children: [
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                child: Text(
-                  'Available Times for ${_selectedDay!.day}/${_selectedDay!.month}/${_selectedDay!.year} ($_selectedSize)',
-                  style: const TextStyle(
-                      fontSize: 17, fontWeight: FontWeight.bold),
-                ),
-              ),
-              // IconButton(
-              //   icon: const Icon(Icons.refresh),
-              //   onPressed: _fetchReservations,
-              //   tooltip: 'Refresh Reservations',
-              // ),
-            ],
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: Text(
+              'Available Times for ${_selectedDay!.day}/${_selectedDay!.month}/${_selectedDay!.year} ($_selectedSize)',
+              style: const TextStyle(fontSize: 17, fontWeight: FontWeight.bold),
+            ),
           ),
           const SizedBox(height: 8),
           ..._getAvailableSlots(_selectedDay!).map((slot) {
@@ -401,18 +356,14 @@ class _SportsCourtCalendarState extends State<SportsCourtCalendar> {
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text(
-                    '${_formatHour(time)} - ${_formatHour(endTime)}',
-                    style: const TextStyle(
-                        fontSize: 16, fontWeight: FontWeight.bold),
-                  ),
-                  Text(
-                    isAvailable ? 'Available' : 'Reserved',
-                    style: TextStyle(
-                      color: isAvailable ? Colors.green[800] : Colors.red[800],
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
+                  Text('${_formatHour(time)} - ${_formatHour(endTime)}',
+                      style: const TextStyle(
+                          fontSize: 16, fontWeight: FontWeight.bold)),
+                  Text(isAvailable ? 'Available' : 'Reserved',
+                      style: TextStyle(
+                          color:
+                              isAvailable ? Colors.green[800] : Colors.red[800],
+                          fontWeight: FontWeight.bold)),
                 ],
               ),
             );

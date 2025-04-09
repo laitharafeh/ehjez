@@ -6,20 +6,51 @@ class ProfileScreen extends StatelessWidget {
   ProfileScreen({super.key});
   final supabase = Supabase.instance.client;
 
+  void _logout(BuildContext context) async {
+    await supabase.auth.signOut();
+  }
+
   @override
   Widget build(BuildContext context) {
+    final user = supabase.auth.currentUser;
+
     return Scaffold(
       appBar: CustomAppBar(),
-      body:
-          const Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-        Row(
+      body: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
           children: [
-            Spacer(),
-            Text("Profile Screen", style: TextStyle(fontSize: 20)),
-            Spacer(),
+            // User Info Card
+
+            const SizedBox(height: 30),
+
+            // Action Buttons Card
+            Card(
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16)),
+              elevation: 2,
+              child: Padding(
+                padding:
+                    const EdgeInsets.symmetric(vertical: 20.0, horizontal: 16),
+                child: Column(
+                  children: [
+                    ListTile(
+                      leading: const Icon(Icons.phone),
+                      title: Text(user?.phone ?? 'N/A'),
+                      onTap: () => _logout(context),
+                    ),
+                    ListTile(
+                      leading: const Icon(Icons.logout),
+                      title: const Text('Log Out'),
+                      onTap: () => _logout(context),
+                    ),
+                  ],
+                ),
+              ),
+            ),
           ],
-        )
-      ]),
+        ),
+      ),
     );
   }
 }

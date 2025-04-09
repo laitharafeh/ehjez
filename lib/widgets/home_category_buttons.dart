@@ -14,7 +14,7 @@ class HomeCategoryButtons extends StatelessWidget {
         scrollDirection: Axis.horizontal,
         child: Row(
           children: [
-            const SizedBox(width: 8),
+            const SizedBox(width: 15),
             CustomSquareButton(
               onTap: () {
                 onGoToSearch(
