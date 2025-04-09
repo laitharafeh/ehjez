@@ -42,9 +42,13 @@ class _SearchScreenState extends State<SearchScreen> {
   void initState() {
     super.initState();
     _selectedCategory = widget.selectedCategory;
-    _fetchCourts(); // Initial fetch
 
-    // Add scroll listener to load more data
+    // Smooth initial load
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _fetchCourts(); // Initial fetch after UI builds
+    });
+
+    // Scroll listener for pagination
     _scrollController.addListener(() {
       if (_scrollController.position.pixels ==
               _scrollController.position.maxScrollExtent &&

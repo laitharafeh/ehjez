@@ -5,7 +5,6 @@ import 'package:ehjez/widgets/home_category_buttons.dart';
 import 'package:ehjez/widgets/size_court_list_tile.dart';
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:cached_network_image/cached_network_image.dart'; // Add this package
 
 class HomeScreen extends StatefulWidget {
   final Function onGoToSearch;
