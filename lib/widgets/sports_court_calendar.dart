@@ -25,6 +25,8 @@ class _SportsCourtCalendarState extends State<SportsCourtCalendar> {
   int _selectedDuration = 2;
   DateTime? _courtStartTime;
   DateTime? _courtEndTime;
+  // flag used when end_time from Supabase is "23:59:59"
+  bool _isEndTimeSpecial = false;
   Map<String, int> _courtSizes = {};
   String? _selectedSize;
   int? _numberOfFields;
@@ -50,14 +52,24 @@ class _SportsCourtCalendarState extends State<SportsCourtCalendar> {
 
       if (response.isNotEmpty) {
         final now = DateTime.now();
+        String endTimeStr = response['end_time'] as String;
+
+        // If end_time is exactly "23:59:59", mark it as special.
+        if (endTimeStr == "23:59:59") {
+          _isEndTimeSpecial = true;
+        }
+
         int startHour = int.parse(response['start_time'].split(':')[0]);
-        int endHour = int.parse(response['end_time'].split(':')[0]);
+        int endHour = int.parse(endTimeStr.split(':')[0]);
 
         _courtStartTime = DateTime(now.year, now.month, now.day, startHour);
+        // When not special, _courtEndTime remains on the same day (or next day if rolled over)
         _courtEndTime = endHour >= startHour
             ? DateTime(now.year, now.month, now.day, endHour)
             : DateTime(now.year, now.month, now.day + 1, endHour);
 
+        // We keep the original _courtEndTime even for special cases;
+        // later in _getAvailableSlots we will adjust how we treat it.
         _courtSizes.clear();
         if (response['size1'] != null &&
             response['size1'].isNotEmpty &&
@@ -89,8 +101,9 @@ class _SportsCourtCalendarState extends State<SportsCourtCalendar> {
         );
       }
       _courtStartTime = DateTime.now().copyWith(hour: 8, minute: 0);
-      _courtEndTime =
-          DateTime.now().copyWith(hour: 2, minute: 0).add(Duration(days: 1));
+      _courtEndTime = DateTime.now()
+          .copyWith(hour: 2, minute: 0)
+          .add(const Duration(days: 1));
       await _fetchReservations();
     } finally {
       if (mounted) setState(() => _isLoading = false);
@@ -188,13 +201,27 @@ class _SportsCourtCalendarState extends State<SportsCourtCalendar> {
       return [];
     }
 
-    final dayStart = DateTime(day.year, day.month, day.day,
-        _courtStartTime!.hour, _courtStartTime!.minute);
-    final dayEnd = _courtEndTime!.isAfter(_courtStartTime!)
-        ? DateTime(day.year, day.month, day.day, _courtEndTime!.hour,
-            _courtEndTime!.minute)
-        : DateTime(day.year, day.month, day.day + 1, _courtEndTime!.hour,
-            _courtEndTime!.minute);
+    // Compute dayStart from _courtStartTime.
+    final dayStart = DateTime(
+      day.year,
+      day.month,
+      day.day,
+      _courtStartTime!.hour,
+      _courtStartTime!.minute,
+    );
+
+    // For a special end time, treat dayEnd as midnight; otherwise, use the provided end time (or roll over to the next day if needed).
+    DateTime dayEnd;
+    if (_isEndTimeSpecial) {
+      // End at midnight (00:00 of the next day)
+      dayEnd = DateTime(day.year, day.month, day.day + 1, 0, 0);
+    } else {
+      dayEnd = _courtEndTime!.isAfter(_courtStartTime!)
+          ? DateTime(day.year, day.month, day.day, _courtEndTime!.hour,
+              _courtEndTime!.minute)
+          : DateTime(day.year, day.month, day.day + 1, _courtEndTime!.hour,
+              _courtEndTime!.minute);
+    }
 
     final reservedTimes =
         _reservations[DateTime(day.year, day.month, day.day)] ?? [];
@@ -202,14 +229,41 @@ class _SportsCourtCalendarState extends State<SportsCourtCalendar> {
     List<Map<String, dynamic>> slots = [];
     DateTime currentTime = dayStart;
 
-    while (currentTime.isBefore(dayEnd)) {
+    while (true) {
       final slotEnd = currentTime.add(Duration(hours: _selectedDuration));
-      bool isAvailable = slotEnd.isAfter(dayEnd)
-          ? false
-          : _getMaxConcurrency(currentTime, slotEnd, reservedTimes) <
-              _numberOfFields!;
-      slots.add({'time': currentTime, 'isAvailable': isAvailable});
+
+      // If the 2-hour slot goes out of range then stop processing further slots.
+      if (_selectedDuration == 2 && slotEnd.isAfter(dayEnd)) break;
+
+      // Stop the loop if current slot start is at or after dayEnd.
+      if (currentTime.isAtSameMomentAs(dayEnd) || currentTime.isAfter(dayEnd))
+        break;
+
+      bool isWithinRange;
+      if (_isEndTimeSpecial &&
+          _selectedDuration == 1 &&
+          slotEnd.hour == 0 &&
+          slotEnd.minute == 0) {
+        // Allow exactly the 1-hour slot that ends at midnight.
+        isWithinRange =
+            _getMaxConcurrency(currentTime, slotEnd, reservedTimes) <
+                _numberOfFields!;
+      } else if (slotEnd.isAfter(dayEnd)) {
+        isWithinRange = false;
+      } else {
+        isWithinRange =
+            _getMaxConcurrency(currentTime, slotEnd, reservedTimes) <
+                _numberOfFields!;
+      }
+
+      slots.add({
+        'time': currentTime,
+        'isAvailable': isWithinRange,
+      });
+
+      // Move to the next slot start time.
       currentTime = currentTime.add(const Duration(hours: 1));
+      if (currentTime.isAfter(dayEnd)) break;
     }
 
     return slots;

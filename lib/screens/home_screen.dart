@@ -82,7 +82,6 @@ class _HomeScreenState extends State<HomeScreen> {
           children: [
             // Logo and branding
             const SizedBox(height: 40),
-            // "Categories" title aligned to left
             const HomeText(text: "Categories"),
             const SizedBox(height: 12),
             // Horizontal scrollable category buttons
@@ -93,7 +92,6 @@ class _HomeScreenState extends State<HomeScreen> {
               height: 20, // Space around the line
             ),
             const SizedBox(height: 15),
-            // "Featured" title aligned to left
             const HomeText(text: "Featured"),
             // Horizontal scroll of featured courts
             SizedBox(
