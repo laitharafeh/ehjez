@@ -1,4 +1,3 @@
-import 'package:ehjez/widgets/custom_app_bar.dart';
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -15,7 +14,7 @@ class ProfileScreen extends StatelessWidget {
     final user = supabase.auth.currentUser;
 
     return Scaffold(
-      appBar: CustomAppBar(),
+      appBar: AppBar(title: const Text("Profile")),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
@@ -37,7 +36,7 @@ class ProfileScreen extends StatelessWidget {
                     ListTile(
                       leading: const Icon(Icons.phone),
                       title: Text(user?.phone ?? 'N/A'),
-                      onTap: () => _logout(context),
+                      onTap: () {},
                     ),
                     ListTile(
                       leading: const Icon(Icons.logout),

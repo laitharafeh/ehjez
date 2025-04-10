@@ -40,7 +40,6 @@ dependencies:
   url_launcher: ^6.3.1
   table_calendar: ^3.2.0
   smooth_page_indicator: ^1.2.1
-  cached_network_image: ^3.4.1
 
 dev_dependencies:
   flutter_test:
@@ -74,6 +73,7 @@ flutter:
     - assets/badminton_ball.png
     - assets/basketball.png
     - assets/volleyball.png
+    - assets/trophy.png
   #   - images/a_dot_ham.jpeg
 
   # An image asset can refer to one or more resolution-specific "variants", see

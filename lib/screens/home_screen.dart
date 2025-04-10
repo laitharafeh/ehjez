@@ -1,7 +1,9 @@
 import 'package:ehjez/screens/court_details_screen.dart';
+import 'package:ehjez/widgets/coming_soon_button.dart';
 import 'package:ehjez/widgets/custom_app_bar.dart';
 import 'package:ehjez/widgets/featured_court_list_tile.dart';
 import 'package:ehjez/widgets/home_category_buttons.dart';
+import 'package:ehjez/widgets/home_text.dart';
 import 'package:ehjez/widgets/size_court_list_tile.dart';
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -81,16 +83,7 @@ class _HomeScreenState extends State<HomeScreen> {
             // Logo and branding
             const SizedBox(height: 40),
             // "Categories" title aligned to left
-            const Padding(
-              padding: EdgeInsets.symmetric(horizontal: 16.0),
-              child: Align(
-                alignment: Alignment.centerLeft,
-                child: Text(
-                  "Categories",
-                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-                ),
-              ),
-            ),
+            const HomeText(text: "Categories"),
             const SizedBox(height: 12),
             // Horizontal scrollable category buttons
             HomeCategoryButtons(onGoToSearch: widget.onGoToSearch),
@@ -101,16 +94,7 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
             const SizedBox(height: 15),
             // "Featured" title aligned to left
-            const Padding(
-              padding: EdgeInsets.symmetric(horizontal: 16.0),
-              child: Align(
-                alignment: Alignment.centerLeft,
-                child: Text(
-                  "Featured",
-                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-                ),
-              ),
-            ),
+            const HomeText(text: "Featured"),
             // Horizontal scroll of featured courts
             SizedBox(
               height: 220, // Adjust height for horizontal cards
@@ -159,16 +143,7 @@ class _HomeScreenState extends State<HomeScreen> {
               //
             ),
             const SizedBox(height: 15),
-            const Padding(
-              padding: EdgeInsets.symmetric(horizontal: 16.0),
-              child: Align(
-                alignment: Alignment.centerLeft,
-                child: Text(
-                  "6 vs 6",
-                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-                ),
-              ),
-            ),
+            const HomeText(text: "6 vs 6"),
             SizedBox(
               height: 141, // Adjust height for horizontal cards
               child: listOf6v6Courts.isEmpty
@@ -223,16 +198,7 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
 
             const SizedBox(height: 15),
-            const Padding(
-              padding: EdgeInsets.symmetric(horizontal: 16.0),
-              child: Align(
-                alignment: Alignment.centerLeft,
-                child: Text(
-                  "Padel",
-                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-                ),
-              ),
-            ),
+            const HomeText(text: "Padel"),
             SizedBox(
               height: 141, // Adjust height for horizontal cards
               child: listOfPadelCourts.isEmpty
@@ -287,16 +253,7 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
 
             const SizedBox(height: 15),
-            const Padding(
-              padding: EdgeInsets.symmetric(horizontal: 16.0),
-              child: Align(
-                alignment: Alignment.centerLeft,
-                child: Text(
-                  "8 vs 8",
-                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-                ),
-              ),
-            ),
+            const HomeText(text: "8 vs 8"),
             SizedBox(
               height: 141, // Adjust height for horizontal cards
               child: listOf8v8Courts.isEmpty
@@ -340,6 +297,18 @@ class _HomeScreenState extends State<HomeScreen> {
                       },
                     ),
             ),
+            const SizedBox(height: 20),
+            const Padding(
+              padding: EdgeInsets.symmetric(horizontal: 16.0),
+              child: Align(
+                alignment: Alignment.center,
+                child: Text(
+                  "Tournaments",
+                  style: TextStyle(fontSize: 23, fontWeight: FontWeight.bold),
+                ),
+              ),
+            ),
+            const ComingSoonButton(imagePath: "assets/trophy.png")
           ],
         ),
       ),
