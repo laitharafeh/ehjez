@@ -1,11 +1,11 @@
-//import 'package:ehjez/widgets/custom_app_bar.dart';
+// CourtDetailsScreen.dart
 import 'package:ehjez/constants.dart';
 import 'package:ehjez/widgets/image_slider.dart';
 import 'package:ehjez/widgets/sports_court_calendar.dart';
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 
-class CourtDetailsScreen extends StatelessWidget {
+class CourtDetailsScreen extends StatefulWidget {
   final String id;
   final String name;
   final String category;
@@ -31,6 +31,13 @@ class CourtDetailsScreen extends StatelessWidget {
     required this.image3Url,
   });
 
+  @override
+  State<CourtDetailsScreen> createState() => _CourtDetailsScreenState();
+}
+
+class _CourtDetailsScreenState extends State<CourtDetailsScreen> {
+  DateTime? _selectedTimeSlot;
+
   Future<void> _launchURL() async {
     final Uri uri = Uri.parse('https://maps.app.goo.gl/UTYee2MTPFi67wna9');
 
@@ -43,15 +50,18 @@ class CourtDetailsScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    List<String> imageUrls = [imageUrl, image2Url, image3Url]
-        .where((url) => url.isNotEmpty)
-        .toList();
+    List<String> imageUrls = [
+      widget.imageUrl,
+      widget.image2Url,
+      widget.image3Url
+    ].where((url) => url.isNotEmpty).toList();
 
     return Scaffold(
       appBar: AppBar(
-          title: Text(name),
-          titleTextStyle: const TextStyle(
-              fontWeight: FontWeight.bold, fontSize: 20, color: Colors.black)),
+        title: Text(widget.name),
+        titleTextStyle: const TextStyle(
+            fontWeight: FontWeight.bold, fontSize: 20, color: Colors.black),
+      ),
       body: SingleChildScrollView(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -76,10 +86,12 @@ class CourtDetailsScreen extends StatelessWidget {
                       padding: const EdgeInsets.all(16.0),
                       child: Column(
                         children: [
-                          _infoRow(Icons.sports_soccer, "Category", category),
-                          _infoRow(Icons.location_on, "Location", location),
-                          _infoRow(Icons.phone, "Phone", phone),
-                          _infoRow(Icons.attach_money, "Price", price),
+                          _infoRow(
+                              Icons.sports_soccer, "Category", widget.category),
+                          _infoRow(
+                              Icons.location_on, "Location", widget.location),
+                          _infoRow(Icons.phone, "Phone", widget.phone),
+                          _infoRow(Icons.attach_money, "Price", widget.price),
                           const SizedBox(height: 10),
                           SizedBox(
                             width: double.infinity,
@@ -105,10 +117,15 @@ class CourtDetailsScreen extends StatelessWidget {
 
                   const SizedBox(height: 15),
 
-                  // Calendar
+                  // Calendar widget with a callback to update the selected time slot.
                   SportsCourtCalendar(
-                    courtId: id,
-                    name: name,
+                    courtId: widget.id,
+                    name: widget.name,
+                    onTimeSlotSelected: (DateTime selectedSlot) {
+                      setState(() {
+                        _selectedTimeSlot = selectedSlot;
+                      });
+                    },
                   ),
 
                   const SizedBox(height: 50),
@@ -118,6 +135,51 @@ class CourtDetailsScreen extends StatelessWidget {
           ],
         ),
       ),
+      // Bottom Navigation Bar: appears when a time slot is selected.
+      bottomNavigationBar: _selectedTimeSlot != null
+          ? Container(
+              padding: const EdgeInsets.fromLTRB(40, 20, 25, 40),
+              decoration: const BoxDecoration(
+                color: Colors.white,
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black12,
+                    blurRadius: 10,
+                    offset: Offset(0, -2),
+                  )
+                ],
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    "Price: ${widget.price} JDs",
+                    style: const TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  // Reserve Button
+                  ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: ehjezGreen,
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 24, vertical: 12),
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8)),
+                    ),
+                    onPressed: () {
+                      // Implement reserve logic here.
+                    },
+                    child: const Text(
+                      'Reserve',
+                      style: TextStyle(fontSize: 16, color: Colors.white),
+                    ),
+                  ),
+                ],
+              ),
+            )
+          : null,
     );
   }
 

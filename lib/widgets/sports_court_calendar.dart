@@ -6,10 +6,12 @@ import 'package:table_calendar/table_calendar.dart';
 class SportsCourtCalendar extends StatefulWidget {
   final String courtId;
   final String name;
+  final ValueChanged<DateTime>? onTimeSlotSelected;
 
   const SportsCourtCalendar({
     required this.name,
     required this.courtId,
+    this.onTimeSlotSelected,
     super.key,
   });
 
@@ -18,6 +20,7 @@ class SportsCourtCalendar extends StatefulWidget {
 }
 
 class _SportsCourtCalendarState extends State<SportsCourtCalendar> {
+  DateTime? _selectedSlotTime;
   late DateTime _focusedDay;
   DateTime? _selectedDay;
   final Map<DateTime, List<Map<String, dynamic>>> _reservations = {};
@@ -27,7 +30,7 @@ class _SportsCourtCalendarState extends State<SportsCourtCalendar> {
   DateTime? _courtEndTime;
   // flag used when end_time from Supabase is "23:59:59"
   bool _isEndTimeSpecial = false;
-  Map<String, int> _courtSizes = {};
+  final Map<String, int> _courtSizes = {};
   String? _selectedSize;
   int? _numberOfFields;
 
@@ -236,8 +239,9 @@ class _SportsCourtCalendarState extends State<SportsCourtCalendar> {
       if (_selectedDuration == 2 && slotEnd.isAfter(dayEnd)) break;
 
       // Stop the loop if current slot start is at or after dayEnd.
-      if (currentTime.isAtSameMomentAs(dayEnd) || currentTime.isAfter(dayEnd))
+      if (currentTime.isAtSameMomentAs(dayEnd) || currentTime.isAfter(dayEnd)) {
         break;
+      }
 
       bool isWithinRange;
       if (_isEndTimeSpecial &&
@@ -399,26 +403,50 @@ class _SportsCourtCalendarState extends State<SportsCourtCalendar> {
             final time = slot['time'] as DateTime;
             final isAvailable = slot['isAvailable'] as bool;
             final endTime = time.add(Duration(hours: _selectedDuration));
+            final isSelected = _selectedSlotTime == time;
 
-            return Container(
-              margin: const EdgeInsets.symmetric(vertical: 4, horizontal: 16),
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: isAvailable ? const Color(0xFFC8E6C9) : Colors.red[100],
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text('${_formatHour(time)} - ${_formatHour(endTime)}',
-                      style: const TextStyle(
-                          fontSize: 16, fontWeight: FontWeight.bold)),
-                  Text(isAvailable ? 'Available' : 'Reserved',
+            return GestureDetector(
+              onTap: () {
+                if (isAvailable) {
+                  setState(() {
+                    _selectedSlotTime = time;
+                  });
+                  // Call the callback to notify the parent widget of the selection.
+                  if (widget.onTimeSlotSelected != null) {
+                    widget.onTimeSlotSelected!(time);
+                  }
+                }
+              },
+              child: Container(
+                margin: const EdgeInsets.symmetric(vertical: 4, horizontal: 16),
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: isSelected
+                      ? Colors.green[300]
+                      : isAvailable
+                          ? const Color(0xFFC8E6C9)
+                          : Colors.red[100],
+                  borderRadius: BorderRadius.circular(8),
+                  border: isSelected
+                      ? Border.all(color: Colors.green, width: 2)
+                      : Border.all(color: Colors.grey.shade300),
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text('${_formatHour(time)} - ${_formatHour(endTime)}',
+                        style: const TextStyle(
+                            fontSize: 16, fontWeight: FontWeight.bold)),
+                    Text(
+                      isAvailable ? 'Available' : 'Reserved',
                       style: TextStyle(
-                          color:
-                              isAvailable ? Colors.green[800] : Colors.red[800],
-                          fontWeight: FontWeight.bold)),
-                ],
+                        color:
+                            isAvailable ? Colors.green[800] : Colors.red[800],
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ],
+                ),
               ),
             );
           }),
