@@ -6,12 +6,16 @@ import 'package:table_calendar/table_calendar.dart';
 class SportsCourtCalendar extends StatefulWidget {
   final String courtId;
   final String name;
-  final ValueChanged<DateTime>? onTimeSlotSelected;
+  // Updated callback to pass both the selected time and duration.
+  final void Function(DateTime, int)? onTimeSlotSelected;
+  // New callback to notify that selection should be reset.
+  final VoidCallback? onSelectionReset;
 
   const SportsCourtCalendar({
     required this.name,
     required this.courtId,
     this.onTimeSlotSelected,
+    this.onSelectionReset,
     super.key,
   });
 
@@ -135,7 +139,6 @@ class _SportsCourtCalendarState extends State<SportsCourtCalendar> {
         final startMinute = int.parse(startTimeStr.split(':')[1]);
         final startTime =
             DateTime(date.year, date.month, date.day, startHour, startMinute);
-
         final dateKey = DateTime(date.year, date.month, date.day);
         _reservations[dateKey] ??= [];
         _reservations[dateKey]!.add({
@@ -213,10 +216,9 @@ class _SportsCourtCalendarState extends State<SportsCourtCalendar> {
       _courtStartTime!.minute,
     );
 
-    // For a special end time, treat dayEnd as midnight; otherwise, use the provided end time (or roll over to the next day if needed).
+    // For a special end time, treat dayEnd as midnight; otherwise, use the provided end time.
     DateTime dayEnd;
     if (_isEndTimeSpecial) {
-      // End at midnight (00:00 of the next day)
       dayEnd = DateTime(day.year, day.month, day.day + 1, 0, 0);
     } else {
       dayEnd = _courtEndTime!.isAfter(_courtStartTime!)
@@ -235,10 +237,10 @@ class _SportsCourtCalendarState extends State<SportsCourtCalendar> {
     while (true) {
       final slotEnd = currentTime.add(Duration(hours: _selectedDuration));
 
-      // If the 2-hour slot goes out of range then stop processing further slots.
+      // If the 2-hour slot goes out of range then stop.
       if (_selectedDuration == 2 && slotEnd.isAfter(dayEnd)) break;
 
-      // Stop the loop if current slot start is at or after dayEnd.
+      // Stop if current slot start reaches/passes dayEnd.
       if (currentTime.isAtSameMomentAs(dayEnd) || currentTime.isAfter(dayEnd)) {
         break;
       }
@@ -248,7 +250,6 @@ class _SportsCourtCalendarState extends State<SportsCourtCalendar> {
           _selectedDuration == 1 &&
           slotEnd.hour == 0 &&
           slotEnd.minute == 0) {
-        // Allow exactly the 1-hour slot that ends at midnight.
         isWithinRange =
             _getMaxConcurrency(currentTime, slotEnd, reservedTimes) <
                 _numberOfFields!;
@@ -265,7 +266,7 @@ class _SportsCourtCalendarState extends State<SportsCourtCalendar> {
         'isAvailable': isWithinRange,
       });
 
-      // Move to the next slot start time.
+      // Move to next slot start time.
       currentTime = currentTime.add(const Duration(hours: 1));
       if (currentTime.isAfter(dayEnd)) break;
     }
@@ -293,9 +294,11 @@ class _SportsCourtCalendarState extends State<SportsCourtCalendar> {
       children: [
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16),
-          child: Text('Sizes',
-              style: Theme.of(context).appBarTheme.titleTextStyle ??
-                  const TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+          child: Text(
+            'Sizes',
+            style: Theme.of(context).appBarTheme.titleTextStyle ??
+                const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+          ),
         ),
         if (_courtSizes.isNotEmpty) ...[
           Padding(
@@ -318,11 +321,14 @@ class _SportsCourtCalendarState extends State<SportsCourtCalendar> {
                     child: Padding(
                       padding: const EdgeInsets.symmetric(
                           horizontal: 16, vertical: 8),
-                      child: Text(size,
-                          style: TextStyle(
-                              color: _selectedSize == size
-                                  ? Colors.white
-                                  : Colors.black)),
+                      child: Text(
+                        size,
+                        style: TextStyle(
+                          color: _selectedSize == size
+                              ? Colors.white
+                              : Colors.black,
+                        ),
+                      ),
                     ),
                   ),
                 );
@@ -344,7 +350,13 @@ class _SportsCourtCalendarState extends State<SportsCourtCalendar> {
             setState(() {
               _selectedDay = selectedDay;
               _focusedDay = focusedDay;
+              _selectedSlotTime = null; // Clear selected slot when day changes
             });
+            // Call parent's onSelectionReset if needed
+            // (if parent passes this callback; not shown in your current code)
+            // if (widget.onSelectionReset != null) {
+            //   widget.onSelectionReset!();
+            // }
           },
           eventLoader: (day) =>
               _reservations[DateTime(day.year, day.month, day.day)] ?? [],
@@ -369,21 +381,32 @@ class _SportsCourtCalendarState extends State<SportsCourtCalendar> {
               Center(
                 child: ToggleButtons(
                   isSelected: [_selectedDuration == 1, _selectedDuration == 2],
-                  onPressed: (index) =>
-                      setState(() => _selectedDuration = index + 1),
+                  onPressed: (index) {
+                    setState(() {
+                      _selectedDuration = index + 1;
+                      _selectedSlotTime =
+                          null; // Clear selected slot when duration changes
+                    });
+                    // Optionally, notify parent reset via onSelectionReset if provided.
+                    // if (widget.onSelectionReset != null) {
+                    //   widget.onSelectionReset!();
+                    // }
+                  },
                   borderRadius: BorderRadius.circular(8),
                   selectedColor: Colors.white,
                   color: Colors.black,
                   fillColor: const Color(0xFF068631),
                   children: const [
                     Padding(
-                        padding:
-                            EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                        child: Text('1 Hour')),
+                      padding:
+                          EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                      child: Text('1 Hour'),
+                    ),
                     Padding(
-                        padding:
-                            EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                        child: Text('2 Hours')),
+                      padding:
+                          EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                      child: Text('2 Hours'),
+                    ),
                   ],
                 ),
               ),
@@ -404,16 +427,15 @@ class _SportsCourtCalendarState extends State<SportsCourtCalendar> {
             final isAvailable = slot['isAvailable'] as bool;
             final endTime = time.add(Duration(hours: _selectedDuration));
             final isSelected = _selectedSlotTime == time;
-
             return GestureDetector(
               onTap: () {
                 if (isAvailable) {
                   setState(() {
                     _selectedSlotTime = time;
                   });
-                  // Call the callback to notify the parent widget of the selection.
+                  // Updated callback: notify parent with both time and duration.
                   if (widget.onTimeSlotSelected != null) {
-                    widget.onTimeSlotSelected!(time);
+                    widget.onTimeSlotSelected!(time, _selectedDuration);
                   }
                 }
               },

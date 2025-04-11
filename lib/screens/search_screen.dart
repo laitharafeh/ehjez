@@ -32,7 +32,7 @@ class _SearchScreenState extends State<SearchScreen> {
 
   late String _selectedCategory;
   String _searchQuery = "";
-  List<Map<String, dynamic>> _courts = []; // List to store courts
+  final List<Map<String, dynamic>> _courts = []; // List to store courts
   bool _isLoading = false; // Loading state
   bool _hasMore = true; // Whether more data is available
   int _page = 0; // Current page

@@ -37,6 +37,7 @@ class CourtDetailsScreen extends StatefulWidget {
 
 class _CourtDetailsScreenState extends State<CourtDetailsScreen> {
   DateTime? _selectedTimeSlot;
+  int _selectedDuration = 2; // default duration
 
   Future<void> _launchURL() async {
     final Uri uri = Uri.parse('https://maps.app.goo.gl/UTYee2MTPFi67wna9');
@@ -46,6 +47,19 @@ class _CourtDetailsScreenState extends State<CourtDetailsScreen> {
     } else {
       throw "Could not launch";
     }
+  }
+
+  // Helper method to format a DateTime (e.g. "3:00 PM")
+  String _formatSelectedTime(DateTime time) {
+    int hour = time.hour;
+    final minute = time.minute.toString().padLeft(2, '0');
+    String period = hour >= 12 ? 'PM' : 'AM';
+    if (hour > 12) {
+      hour -= 12;
+    } else if (hour == 0) {
+      hour = 12;
+    }
+    return '$hour:$minute $period';
   }
 
   @override
@@ -117,13 +131,20 @@ class _CourtDetailsScreenState extends State<CourtDetailsScreen> {
 
                   const SizedBox(height: 15),
 
-                  // Calendar widget with a callback to update the selected time slot.
+                  // Calendar widget with callbacks to update the selected time slot, duration,
+                  // and to reset the current selection when the day or duration changes.
                   SportsCourtCalendar(
                     courtId: widget.id,
                     name: widget.name,
-                    onTimeSlotSelected: (DateTime selectedSlot) {
+                    onTimeSlotSelected: (DateTime selectedSlot, int duration) {
                       setState(() {
                         _selectedTimeSlot = selectedSlot;
+                        _selectedDuration = duration;
+                      });
+                    },
+                    onSelectionReset: () {
+                      setState(() {
+                        _selectedTimeSlot = null;
                       });
                     },
                   ),
@@ -135,51 +156,71 @@ class _CourtDetailsScreenState extends State<CourtDetailsScreen> {
           ],
         ),
       ),
-      // Bottom Navigation Bar: appears when a time slot is selected.
-      bottomNavigationBar: _selectedTimeSlot != null
-          ? Container(
-              padding: const EdgeInsets.fromLTRB(40, 20, 25, 40),
-              decoration: const BoxDecoration(
-                color: Colors.white,
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black12,
-                    blurRadius: 10,
-                    offset: Offset(0, -2),
-                  )
-                ],
-              ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    "Price: ${widget.price} JDs",
-                    style: const TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  // Reserve Button
-                  ElevatedButton(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: ehjezGreen,
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 24, vertical: 12),
-                      shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8)),
-                    ),
-                    onPressed: () {
-                      // Implement reserve logic here.
-                    },
-                    child: const Text(
-                      'Reserve',
-                      style: TextStyle(fontSize: 16, color: Colors.white),
-                    ),
-                  ),
-                ],
-              ),
+      // Bottom Navigation Bar: always visible with a button that is disabled when no time slot is selected.
+      bottomNavigationBar: Container(
+        padding: const EdgeInsets.fromLTRB(40, 20, 25, 40),
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black12,
+              blurRadius: 10,
+              offset: Offset(0, -2),
             )
-          : null,
+          ],
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            // Left side: Price and selected time with duration.
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  _selectedTimeSlot != null
+                      ? "Price: ${widget.price} JDs"
+                      : "Select time slot",
+                  style: const TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  _selectedTimeSlot != null
+                      ? "Selected: ${_formatSelectedTime(_selectedTimeSlot!)} (${_selectedDuration} Hour${_selectedDuration > 1 ? "s" : ""})"
+                      : "",
+                  style: const TextStyle(
+                    fontSize: 16,
+                  ),
+                ),
+              ],
+            ),
+            // Right side: Reserve Button.
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: _selectedTimeSlot != null
+                    ? ehjezGreen
+                    : Colors.grey.shade400,
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8)),
+              ),
+              onPressed: _selectedTimeSlot != null
+                  ? () {
+                      // Implement reserve logic here.
+                    }
+                  : null,
+              child: const Text(
+                'Reserve',
+                style: TextStyle(fontSize: 16, color: Colors.white),
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 
@@ -190,10 +231,6 @@ class _CourtDetailsScreenState extends State<CourtDetailsScreen> {
         children: [
           Icon(icon, color: const Color(0xFF068631), size: 28),
           const SizedBox(width: 12),
-          Text(
-            "$label: ",
-            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
-          ),
           Expanded(
             child: Text(
               value,
