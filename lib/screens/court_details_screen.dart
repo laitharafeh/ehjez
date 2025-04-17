@@ -189,7 +189,7 @@ class _CourtDetailsScreenState extends State<CourtDetailsScreen> {
                 const SizedBox(height: 4),
                 Text(
                   _selectedTimeSlot != null
-                      ? "Selected: ${_formatSelectedTime(_selectedTimeSlot!)} (${_selectedDuration} Hour${_selectedDuration > 1 ? "s" : ""})"
+                      ? "${_formatSelectedTime(_selectedTimeSlot!)} (${_selectedDuration} Hour${_selectedDuration > 1 ? "s" : ""})"
                       : "",
                   style: const TextStyle(
                     fontSize: 16,

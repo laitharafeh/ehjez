@@ -33,14 +33,42 @@ class ProfileScreen extends StatelessWidget {
                     const EdgeInsets.symmetric(vertical: 20.0, horizontal: 16),
                 child: Column(
                   children: [
+                    const ListTile(
+                      leading: Icon(Icons.person),
+                      title: Text("Name"),
+                    ),
                     ListTile(
-                      leading: const Icon(Icons.phone),
+                      leading: Icon(Icons.phone),
                       title: Text(user?.phone ?? 'N/A'),
-                      onTap: () {},
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: 20),
+            const Text("Need Help?\nContact Us!",
+                style: TextStyle(fontSize: 18)),
+            const SizedBox(height: 20),
+            Card(
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16)),
+              elevation: 2,
+              child: Padding(
+                padding:
+                    const EdgeInsets.symmetric(vertical: 20.0, horizontal: 16),
+                child: Column(
+                  children: [
+                    const ListTile(
+                      leading: Icon(Icons.email),
+                      title: Text("Email"),
+                    ),
+                    ListTile(
+                      leading: Icon(Icons.phone),
+                      title: Text(user?.phone ?? 'N/A'),
                     ),
                     ListTile(
                       leading: const Icon(Icons.logout),
-                      title: const Text('Log Out'),
+                      title: const Text("Log Out"),
                       onTap: () => _logout(context),
                     ),
                   ],

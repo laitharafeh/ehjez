@@ -352,11 +352,10 @@ class _SportsCourtCalendarState extends State<SportsCourtCalendar> {
               _focusedDay = focusedDay;
               _selectedSlotTime = null; // Clear selected slot when day changes
             });
-            // Call parent's onSelectionReset if needed
-            // (if parent passes this callback; not shown in your current code)
-            // if (widget.onSelectionReset != null) {
-            //   widget.onSelectionReset!();
-            // }
+            // Call parent's onSelectionReset if provided
+            if (widget.onSelectionReset != null) {
+              widget.onSelectionReset!();
+            }
           },
           eventLoader: (day) =>
               _reservations[DateTime(day.year, day.month, day.day)] ?? [],
@@ -387,10 +386,10 @@ class _SportsCourtCalendarState extends State<SportsCourtCalendar> {
                       _selectedSlotTime =
                           null; // Clear selected slot when duration changes
                     });
-                    // Optionally, notify parent reset via onSelectionReset if provided.
-                    // if (widget.onSelectionReset != null) {
-                    //   widget.onSelectionReset!();
-                    // }
+                    // Notify parent about the reset selection
+                    if (widget.onSelectionReset != null) {
+                      widget.onSelectionReset!();
+                    }
                   },
                   borderRadius: BorderRadius.circular(8),
                   selectedColor: Colors.white,
