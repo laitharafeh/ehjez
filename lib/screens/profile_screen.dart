@@ -14,7 +14,9 @@ class ProfileScreen extends StatelessWidget {
     final user = supabase.auth.currentUser;
 
     return Scaffold(
-      appBar: AppBar(title: const Text("Profile")),
+      appBar: AppBar(
+          title: const Text("Profile",
+              style: TextStyle(fontSize: 30, fontWeight: FontWeight.bold))),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
@@ -38,7 +40,7 @@ class ProfileScreen extends StatelessWidget {
                       title: Text("Name"),
                     ),
                     ListTile(
-                      leading: Icon(Icons.phone),
+                      leading: const Icon(Icons.phone),
                       title: Text(user?.phone ?? 'N/A'),
                     ),
                   ],

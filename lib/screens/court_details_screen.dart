@@ -1,8 +1,8 @@
-// CourtDetailsScreen.dart
 import 'package:ehjez/constants.dart';
 import 'package:ehjez/widgets/image_slider.dart';
 import 'package:ehjez/widgets/sports_court_calendar.dart';
 import 'package:flutter/material.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 class CourtDetailsScreen extends StatefulWidget {
@@ -38,6 +38,7 @@ class CourtDetailsScreen extends StatefulWidget {
 class _CourtDetailsScreenState extends State<CourtDetailsScreen> {
   DateTime? _selectedTimeSlot;
   int _selectedDuration = 2; // default duration
+  String? _selectedSize; // Added to store selected size
 
   Future<void> _launchURL() async {
     final Uri uri = Uri.parse('https://maps.app.goo.gl/UTYee2MTPFi67wna9');
@@ -131,15 +132,16 @@ class _CourtDetailsScreenState extends State<CourtDetailsScreen> {
 
                   const SizedBox(height: 15),
 
-                  // Calendar widget with callbacks to update the selected time slot, duration,
-                  // and to reset the current selection when the day or duration changes.
+                  // Calendar widget with callbacks
                   SportsCourtCalendar(
                     courtId: widget.id,
                     name: widget.name,
-                    onTimeSlotSelected: (DateTime selectedSlot, int duration) {
+                    onTimeSlotSelected:
+                        (DateTime selectedSlot, int duration, String size) {
                       setState(() {
                         _selectedTimeSlot = selectedSlot;
                         _selectedDuration = duration;
+                        _selectedSize = size;
                       });
                     },
                     onSelectionReset: () {
@@ -156,7 +158,6 @@ class _CourtDetailsScreenState extends State<CourtDetailsScreen> {
           ],
         ),
       ),
-      // Bottom Navigation Bar: always visible with a button that is disabled when no time slot is selected.
       bottomNavigationBar: Container(
         padding: const EdgeInsets.fromLTRB(40, 20, 25, 40),
         decoration: const BoxDecoration(
@@ -172,7 +173,6 @@ class _CourtDetailsScreenState extends State<CourtDetailsScreen> {
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            // Left side: Price and selected time with duration.
             Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisSize: MainAxisSize.min,
@@ -197,7 +197,6 @@ class _CourtDetailsScreenState extends State<CourtDetailsScreen> {
                 ),
               ],
             ),
-            // Right side: Reserve Button.
             ElevatedButton(
               style: ElevatedButton.styleFrom(
                 backgroundColor: _selectedTimeSlot != null
@@ -209,8 +208,46 @@ class _CourtDetailsScreenState extends State<CourtDetailsScreen> {
                     borderRadius: BorderRadius.circular(8)),
               ),
               onPressed: _selectedTimeSlot != null
-                  ? () {
-                      // Implement reserve logic here.
+                  ? () async {
+                      final userId =
+                          Supabase.instance.client.auth.currentUser?.id;
+                      if (userId == null) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                              content:
+                                  Text('Please log in to make a reservation')),
+                        );
+                        return;
+                      }
+
+                      final date =
+                          _selectedTimeSlot!.toIso8601String().split('T')[0];
+                      final startTime =
+                          '${_selectedTimeSlot!.hour.toString().padLeft(2, '0')}:${_selectedTimeSlot!.minute.toString().padLeft(2, '0')}:00';
+                      final duration = _selectedDuration;
+                      final size = _selectedSize!;
+
+                      try {
+                        await Supabase.instance.client
+                            .from('reservations')
+                            .insert({
+                          'user_id': userId,
+                          'court_id': widget.id,
+                          'date': date,
+                          'start_time': startTime,
+                          'duration': duration,
+                          'size': size,
+                        });
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                              content: Text('Reservation successful!')),
+                        );
+                      } catch (e) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                              content: Text('Error making reservation: $e')),
+                        );
+                      }
                     }
                   : null,
               child: const Text(

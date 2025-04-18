@@ -6,9 +6,8 @@ import 'package:table_calendar/table_calendar.dart';
 class SportsCourtCalendar extends StatefulWidget {
   final String courtId;
   final String name;
-  // Updated callback to pass both the selected time and duration.
-  final void Function(DateTime, int)? onTimeSlotSelected;
-  // New callback to notify that selection should be reset.
+  final void Function(DateTime, int, String)?
+      onTimeSlotSelected; // Updated callback
   final VoidCallback? onSelectionReset;
 
   const SportsCourtCalendar({
@@ -32,7 +31,6 @@ class _SportsCourtCalendarState extends State<SportsCourtCalendar> {
   int _selectedDuration = 2;
   DateTime? _courtStartTime;
   DateTime? _courtEndTime;
-  // flag used when end_time from Supabase is "23:59:59"
   bool _isEndTimeSpecial = false;
   final Map<String, int> _courtSizes = {};
   String? _selectedSize;
@@ -61,7 +59,6 @@ class _SportsCourtCalendarState extends State<SportsCourtCalendar> {
         final now = DateTime.now();
         String endTimeStr = response['end_time'] as String;
 
-        // If end_time is exactly "23:59:59", mark it as special.
         if (endTimeStr == "23:59:59") {
           _isEndTimeSpecial = true;
         }
@@ -70,13 +67,10 @@ class _SportsCourtCalendarState extends State<SportsCourtCalendar> {
         int endHour = int.parse(endTimeStr.split(':')[0]);
 
         _courtStartTime = DateTime(now.year, now.month, now.day, startHour);
-        // When not special, _courtEndTime remains on the same day (or next day if rolled over)
         _courtEndTime = endHour >= startHour
             ? DateTime(now.year, now.month, now.day, endHour)
             : DateTime(now.year, now.month, now.day + 1, endHour);
 
-        // We keep the original _courtEndTime even for special cases;
-        // later in _getAvailableSlots we will adjust how we treat it.
         _courtSizes.clear();
         if (response['size1'] != null &&
             response['size1'].isNotEmpty &&
@@ -207,7 +201,6 @@ class _SportsCourtCalendarState extends State<SportsCourtCalendar> {
       return [];
     }
 
-    // Compute dayStart from _courtStartTime.
     final dayStart = DateTime(
       day.year,
       day.month,
@@ -216,7 +209,6 @@ class _SportsCourtCalendarState extends State<SportsCourtCalendar> {
       _courtStartTime!.minute,
     );
 
-    // For a special end time, treat dayEnd as midnight; otherwise, use the provided end time.
     DateTime dayEnd;
     if (_isEndTimeSpecial) {
       dayEnd = DateTime(day.year, day.month, day.day + 1, 0, 0);
@@ -237,10 +229,8 @@ class _SportsCourtCalendarState extends State<SportsCourtCalendar> {
     while (true) {
       final slotEnd = currentTime.add(Duration(hours: _selectedDuration));
 
-      // If the 2-hour slot goes out of range then stop.
       if (_selectedDuration == 2 && slotEnd.isAfter(dayEnd)) break;
 
-      // Stop if current slot start reaches/passes dayEnd.
       if (currentTime.isAtSameMomentAs(dayEnd) || currentTime.isAfter(dayEnd)) {
         break;
       }
@@ -266,7 +256,6 @@ class _SportsCourtCalendarState extends State<SportsCourtCalendar> {
         'isAvailable': isWithinRange,
       });
 
-      // Move to next slot start time.
       currentTime = currentTime.add(const Duration(hours: 1));
       if (currentTime.isAfter(dayEnd)) break;
     }
@@ -350,9 +339,8 @@ class _SportsCourtCalendarState extends State<SportsCourtCalendar> {
             setState(() {
               _selectedDay = selectedDay;
               _focusedDay = focusedDay;
-              _selectedSlotTime = null; // Clear selected slot when day changes
+              _selectedSlotTime = null;
             });
-            // Call parent's onSelectionReset if provided
             if (widget.onSelectionReset != null) {
               widget.onSelectionReset!();
             }
@@ -383,10 +371,8 @@ class _SportsCourtCalendarState extends State<SportsCourtCalendar> {
                   onPressed: (index) {
                     setState(() {
                       _selectedDuration = index + 1;
-                      _selectedSlotTime =
-                          null; // Clear selected slot when duration changes
+                      _selectedSlotTime = null;
                     });
-                    // Notify parent about the reset selection
                     if (widget.onSelectionReset != null) {
                       widget.onSelectionReset!();
                     }
@@ -432,9 +418,9 @@ class _SportsCourtCalendarState extends State<SportsCourtCalendar> {
                   setState(() {
                     _selectedSlotTime = time;
                   });
-                  // Updated callback: notify parent with both time and duration.
                   if (widget.onTimeSlotSelected != null) {
-                    widget.onTimeSlotSelected!(time, _selectedDuration);
+                    widget.onTimeSlotSelected!(
+                        time, _selectedDuration, _selectedSize!);
                   }
                 }
               },
