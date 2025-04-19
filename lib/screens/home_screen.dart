@@ -180,15 +180,6 @@ class _HomeScreenState extends State<HomeScreen> {
                                 category: court['category'],
                                 location: court['location'],
                                 imageUrl: court['image_url']),
-                            // child: SizedBox(
-                            //   width: 250, // Set fixed width for horizontal cards
-                            //   child: FeaturedCourtListTile(
-                            //     name: court['name'] ?? "Unknown",
-                            //     category: court['category'] ?? "N/A",
-                            //     location: court['location'] ?? "Not specified",
-                            //     imageUrl: court['image_url'] ?? "",
-                            //   ),
-                            // ),
                           ),
                         );
                       },
@@ -235,15 +226,6 @@ class _HomeScreenState extends State<HomeScreen> {
                                 category: court['category'],
                                 location: court['location'],
                                 imageUrl: court['image_url']),
-                            // child: SizedBox(
-                            //   width: 250, // Set fixed width for horizontal cards
-                            //   child: FeaturedCourtListTile(
-                            //     name: court['name'] ?? "Unknown",
-                            //     category: court['category'] ?? "N/A",
-                            //     location: court['location'] ?? "Not specified",
-                            //     imageUrl: court['image_url'] ?? "",
-                            //   ),
-                            // ),
                           ),
                         );
                       },

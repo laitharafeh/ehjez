@@ -40,6 +40,7 @@ dependencies:
   url_launcher: ^6.3.1
   table_calendar: ^3.2.0
   smooth_page_indicator: ^1.2.1
+  google_fonts: ^6.2.1
 
 dev_dependencies:
   flutter_test:
@@ -74,6 +75,7 @@ flutter:
     - assets/basketball.png
     - assets/volleyball.png
     - assets/trophy.png
+    - assets/ehjez_appbar.png
   #   - images/a_dot_ham.jpeg
 
   # An image asset can refer to one or more resolution-specific "variants", see
@@ -88,10 +90,10 @@ flutter:
   # list giving the asset and other descriptors for the font. For
   # example:
   # fonts:
-  #   - family: Schyler
+  #   - family: ehjez
   #     fonts:
-  #       - asset: fonts/Schyler-Regular.ttf
-  #       - asset: fonts/Schyler-Italic.ttf
+  #       - asset: fonts/WinkySans-VariableFont_wght.ttf
+  #       - asset: fonts/WinkySans-Italic-VariableFont_wght.ttf
   #         style: italic
   #   - family: Trajan Pro
   #     fonts:

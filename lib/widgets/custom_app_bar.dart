@@ -1,7 +1,9 @@
 //import 'package:ehjez/auth_checker.dart';
 //import 'package:ehjez/screens/profile_screen.dart';
+import 'package:ehjez/constants.dart';
 import 'package:ehjez/screens/profile_screen.dart';
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
@@ -12,13 +14,26 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
   @override
   Widget build(BuildContext context) {
     return AppBar(
-      title: const Text('Ehjez',
-          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 30)),
+      title: Text(
+        'ehjez',
+        // style: TextStyle(
+        //     fontFamily: "ehjez",
+        //     fontStyle: FontStyle.italic,
+        //     fontWeight: FontWeight.bold),
+        style: GoogleFonts.grandstander(
+            textStyle: Theme.of(context).textTheme.displayLarge,
+            fontSize: 48,
+            fontWeight: FontWeight.bold,
+            //fontStyle: FontStyle.italic,
+            color: ehjezGreen),
+      ),
+      // title: const Image(
+      //   image: AssetImage("assets/ehjez_appbar.png"),
+      // ),
       actions: [
         IconButton(
           color: Colors.black,
           onPressed: () {
-            //supabase.auth.signOut();
             Navigator.push(
               context,
               MaterialPageRoute(
