@@ -127,6 +127,8 @@ class _SearchScreenState extends State<SearchScreen> {
             child: TextField(
               onChanged: _filterSearchResults,
               decoration: InputDecoration(
+                isDense: true,
+                contentPadding: const EdgeInsets.symmetric(vertical: 8),
                 hintText: "Search...",
                 prefixIcon: const Icon(Icons.search),
                 border: OutlineInputBorder(
@@ -143,7 +145,7 @@ class _SearchScreenState extends State<SearchScreen> {
             selectedCategory: _selectedCategory,
             onCategorySelected: onCategorySelected,
           ),
-          const SizedBox(height: 10),
+          const SizedBox(height: 3),
           Expanded(
             child: _courts.isEmpty && !_isLoading
                 ? const Center(child: Text("No courts found"))

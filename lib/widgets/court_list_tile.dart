@@ -45,12 +45,12 @@ class CourtListTile extends StatelessWidget {
             borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
             child: Image.network(
               imageUrl,
-              height: 150,
+              height: 160,
               width: double.infinity,
               fit: BoxFit.cover,
               errorBuilder: (context, error, stackTrace) {
                 return Container(
-                  height: 150,
+                  height: 160,
                   color: Colors.grey[300],
                   child: const Center(child: Icon(Icons.image, size: 50)),
                 );
@@ -70,7 +70,7 @@ class CourtListTile extends StatelessWidget {
                       child: Text(
                         name,
                         style: const TextStyle(
-                          fontSize: 18,
+                          fontSize: 16,
                           fontWeight: FontWeight.bold,
                         ),
                         overflow: TextOverflow.ellipsis,
@@ -80,11 +80,10 @@ class CourtListTile extends StatelessWidget {
                       label: Text(category),
                       backgroundColor: categoryColor,
                       labelStyle: const TextStyle(
-                          fontSize: 12, fontWeight: FontWeight.w600),
+                          fontSize: 11, fontWeight: FontWeight.w600),
                     ),
                   ],
                 ),
-                const SizedBox(height: 8),
 
                 // Location
                 Row(
@@ -102,20 +101,18 @@ class CourtListTile extends StatelessWidget {
                     ),
                   ],
                 ),
-                const SizedBox(height: 6),
-                // Phone
-                Row(
-                  children: [
-                    const Icon(Icons.phone, color: Colors.green, size: 20),
-                    const SizedBox(width: 6),
-                    Text(
-                      phone,
-                      style:
-                          const TextStyle(fontSize: 11, color: Colors.black87),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 6),
+                // Row(
+                //   children: [
+                //     const Icon(Icons.phone, color: Colors.green, size: 20),
+                //     const SizedBox(width: 6),
+                //     Text(
+                //       phone,
+                //       style:
+                //           const TextStyle(fontSize: 11, color: Colors.black87),
+                //     ),
+                //   ],
+                // ),
+                const SizedBox(height: 2),
               ],
             ),
           ),

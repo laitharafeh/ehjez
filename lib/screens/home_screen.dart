@@ -81,7 +81,7 @@ class _HomeScreenState extends State<HomeScreen> {
           mainAxisAlignment: MainAxisAlignment.spaceEvenly,
           children: [
             // Logo and branding
-            const HomeText(text: "Categories"),
+            const HomeText(text: "Categories", icon: Icons.abc),
             const SizedBox(height: 12),
             // Horizontal scrollable category buttons
             HomeCategoryButtons(onGoToSearch: widget.onGoToSearch),
@@ -91,10 +91,10 @@ class _HomeScreenState extends State<HomeScreen> {
               height: 20, // Space around the line
             ),
             const SizedBox(height: 15),
-            const HomeText(text: "Featured"),
+            const HomeText(text: "Featured", icon: Icons.sports_basketball),
             // Horizontal scroll of featured courts
             SizedBox(
-              height: 220, // Adjust height for horizontal cards
+              height: 208, // Adjust height for horizontal cards
               child: featuredCourts.isEmpty
                   ? const Center(child: CircularProgressIndicator())
                   : ListView.builder(
@@ -140,9 +140,12 @@ class _HomeScreenState extends State<HomeScreen> {
               //
             ),
             const SizedBox(height: 15),
-            const HomeText(text: "6 vs 6"),
+            const HomeText(
+              text: "6 vs 6",
+              icon: Icons.sports_soccer,
+            ),
             SizedBox(
-              height: 141, // Adjust height for horizontal cards
+              height: 115, // Adjust height for horizontal cards
               child: listOf6v6Courts.isEmpty
                   ? const Center(child: CircularProgressIndicator())
                   : ListView.builder(
@@ -186,9 +189,9 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
 
             const SizedBox(height: 15),
-            const HomeText(text: "Padel"),
+            const HomeText(text: "Padel", icon: Icons.sports_tennis),
             SizedBox(
-              height: 141, // Adjust height for horizontal cards
+              height: 115, // Adjust height for horizontal cards
               child: listOfPadelCourts.isEmpty
                   ? const Center(child: CircularProgressIndicator())
                   : ListView.builder(
@@ -232,9 +235,9 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
 
             const SizedBox(height: 15),
-            const HomeText(text: "8 vs 8"),
+            const HomeText(text: "8 vs 8", icon: Icons.sports_soccer),
             SizedBox(
-              height: 141, // Adjust height for horizontal cards
+              height: 115, // Adjust height for horizontal cards
               child: listOf8v8Courts.isEmpty
                   ? const Center(child: CircularProgressIndicator())
                   : ListView.builder(

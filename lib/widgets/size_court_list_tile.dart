@@ -19,8 +19,8 @@ class SizeCourtListTile extends StatelessWidget {
     Color categoryColor = const Color(0xFFC8E6C9);
 
     return SizedBox(
-      height: 100,
-      width: 300, // Ensure a fixed width
+      //height: 50,
+      width: 250, // Ensure a fixed width
       child: Card(
         margin: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 5.0),
         elevation: 4,
@@ -29,18 +29,18 @@ class SizeCourtListTile extends StatelessWidget {
           children: [
             // Court Image
             Padding(
-              padding: const EdgeInsets.all(8.0),
+              padding: const EdgeInsets.all(5.0),
               child: ClipRRect(
                 borderRadius: const BorderRadius.all(Radius.circular(12)),
                 child: Image.network(
                   imageUrl,
-                  height: 100,
-                  width: 100, // Fixed width for image
+                  height: 80,
+                  width: 80, // Fixed width for image
                   fit: BoxFit.cover,
                   errorBuilder: (context, error, stackTrace) {
                     return Container(
-                      height: 100,
-                      width: 100,
+                      height: 80,
+                      width: 80,
                       color: Colors.grey[300],
                       child: const Center(child: Icon(Icons.image, size: 50)),
                     );
@@ -51,7 +51,7 @@ class SizeCourtListTile extends StatelessWidget {
             // Information Section
             Expanded(
               child: Padding(
-                padding: const EdgeInsets.all(12.0),
+                padding: const EdgeInsets.all(5.0),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   mainAxisAlignment: MainAxisAlignment.center,
@@ -59,25 +59,25 @@ class SizeCourtListTile extends StatelessWidget {
                     Text(
                       name,
                       style: const TextStyle(
-                        fontSize: 16,
+                        fontSize: 13,
                         fontWeight: FontWeight.bold,
                       ),
                       overflow: TextOverflow.ellipsis,
                     ),
-                    const SizedBox(height: 4),
+                    const SizedBox(height: 0.5),
                     Text(
                       location,
-                      style: const TextStyle(fontSize: 14, color: Colors.grey),
+                      style: const TextStyle(fontSize: 12, color: Colors.grey),
                       overflow: TextOverflow.ellipsis,
                     ),
-                    const SizedBox(height: 6),
+                    const SizedBox(height: 1),
                     Align(
                       alignment: Alignment.centerLeft,
                       child: Chip(
                         label: Text(category),
                         backgroundColor: categoryColor,
                         labelStyle: const TextStyle(
-                            fontSize: 12, fontWeight: FontWeight.w600),
+                            fontSize: 10, fontWeight: FontWeight.w600),
                       ),
                     ),
                   ],

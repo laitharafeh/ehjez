@@ -65,7 +65,7 @@ class ProfileScreen extends StatelessWidget {
                       title: Text("Email"),
                     ),
                     ListTile(
-                      leading: Icon(Icons.phone),
+                      leading: const Icon(Icons.phone),
                       title: Text(user?.phone ?? 'N/A'),
                     ),
                     ListTile(

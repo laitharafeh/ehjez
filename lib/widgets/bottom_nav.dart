@@ -21,7 +21,7 @@ class _BottomNavState extends State<BottomNav> {
     _pages.addAll([
       HomeScreen(onGoToSearch: _goToSearchScreen), // Pass the callback
       const SearchScreen(selectedCategory: 'All'),
-      BookingsScreen(),
+      const BookingsScreen(),
       // ProfileScreen(),
     ]);
   }
@@ -54,6 +54,7 @@ class _BottomNavState extends State<BottomNav> {
     return Scaffold(
       body: _pages[_selectedIndex],
       bottomNavigationBar: BottomNavigationBar(
+        iconSize: 22,
         type: BottomNavigationBarType.fixed,
         selectedItemColor: const Color(0xFF068631),
         unselectedItemColor: Colors.grey,

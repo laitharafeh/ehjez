@@ -15,13 +15,13 @@ class CategoryButtons extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return SizedBox(
-      height: 50,
+      height: 45,
       child: SingleChildScrollView(
         scrollDirection: Axis.horizontal,
         child: Row(
           children: categories.map((category) {
             return Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 5.0),
+              padding: const EdgeInsets.symmetric(horizontal: 5.0, vertical: 4),
               child: ElevatedButton(
                 onPressed: () => onCategorySelected(category),
                 style: ElevatedButton.styleFrom(

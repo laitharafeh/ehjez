@@ -7,8 +7,10 @@ import 'package:url_launcher/url_launcher.dart';
 
 final String pollQuestion = "This was sent from ehjez";
 
-void _openWhatsAppPoll() async {
-  String message = "*$pollQuestion*\n";
+void _openWhatsAppPoll(String name, DateTime selectedTime) async {
+  String formattedDate =
+      "${selectedTime.day.toString().padLeft(2, '0')}/${selectedTime.month.toString().padLeft(2, '0')}/${selectedTime.year}";
+  String message = "*$name - $formattedDate*\nYes or No?";
 
   final encodedMessage = Uri.encodeComponent(message);
   final url = "https://wa.me/?text=$encodedMessage";

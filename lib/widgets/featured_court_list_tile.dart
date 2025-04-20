@@ -25,9 +25,9 @@ class FeaturedCourtListTile extends StatelessWidget {
     //   categoryColor = Colors.grey; // Default color for other categories
     // }
     return SizedBox(
-      width: 250,
+      width: 260,
       child: Card(
-        margin: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 5.0),
+        margin: const EdgeInsets.symmetric(vertical: 6.0, horizontal: 5.0),
         elevation: 4,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         child: Column(
@@ -52,7 +52,7 @@ class FeaturedCourtListTile extends StatelessWidget {
               ),
             ),
             Padding(
-              padding: const EdgeInsets.all(12.0),
+              padding: const EdgeInsets.all(10.0),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -64,7 +64,7 @@ class FeaturedCourtListTile extends StatelessWidget {
                         child: Text(
                           name,
                           style: const TextStyle(
-                            fontSize: 18,
+                            fontSize: 15,
                             fontWeight: FontWeight.bold,
                           ),
                           overflow: TextOverflow.ellipsis,

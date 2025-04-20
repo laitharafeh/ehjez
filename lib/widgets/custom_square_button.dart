@@ -13,7 +13,7 @@ class CustomSquareButton extends StatelessWidget {
       required this.text,
       //this.color = const Color(0xFFDCEDC8),
       this.color = const Color(0xFFC8E6C9),
-      this.size = 70.0,
+      this.size = 62.0,
       required this.assetPath});
 
   @override
