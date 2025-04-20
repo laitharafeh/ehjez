@@ -16,10 +16,6 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
     return AppBar(
       title: Text(
         'ehjez',
-        // style: TextStyle(
-        //     fontFamily: "ehjez",
-        //     fontStyle: FontStyle.italic,
-        //     fontWeight: FontWeight.bold),
         style: GoogleFonts.grandstander(
             textStyle: Theme.of(context).textTheme.displayLarge,
             fontSize: 48,

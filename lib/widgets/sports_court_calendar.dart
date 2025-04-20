@@ -348,6 +348,7 @@ class _SportsCourtCalendarState extends State<SportsCourtCalendar> {
           eventLoader: (day) =>
               _reservations[DateTime(day.year, day.month, day.day)] ?? [],
           calendarStyle: const CalendarStyle(
+            markersMaxCount: 0,
             markersAlignment: Alignment.bottomRight,
             selectedDecoration:
                 BoxDecoration(color: Color(0xFF068631), shape: BoxShape.circle),

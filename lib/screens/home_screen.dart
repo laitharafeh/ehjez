@@ -81,7 +81,6 @@ class _HomeScreenState extends State<HomeScreen> {
           mainAxisAlignment: MainAxisAlignment.spaceEvenly,
           children: [
             // Logo and branding
-            const SizedBox(height: 40),
             const HomeText(text: "Categories"),
             const SizedBox(height: 12),
             // Horizontal scrollable category buttons

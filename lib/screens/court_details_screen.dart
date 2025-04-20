@@ -5,6 +5,152 @@ import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+final String pollQuestion = "This was sent from ehjez";
+
+void _openWhatsAppPoll() async {
+  String message = "*$pollQuestion*\n";
+
+  final encodedMessage = Uri.encodeComponent(message);
+  final url = "https://wa.me/?text=$encodedMessage";
+
+  if (await canLaunchUrl(Uri.parse(url))) {
+    await launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication);
+  } else {
+    throw "Could not open WhatsApp";
+  }
+}
+
+Future<bool> hasActiveBooking(String userId) async {
+  final now = DateTime.now();
+  final response = await Supabase.instance.client
+      .from('reservations')
+      .select()
+      .eq('user_id', userId);
+
+  for (var r in response as List<dynamic>) {
+    final reservationDate = DateTime.parse(r['date']);
+    final startTimeStr = r['start_time'] as String;
+    final startHour = int.parse(startTimeStr.split(':')[0]);
+    final startMinute = int.parse(startTimeStr.split(':')[1]);
+    final startTime = DateTime(
+      reservationDate.year,
+      reservationDate.month,
+      reservationDate.day,
+      startHour,
+      startMinute,
+    );
+    final endTime = startTime.add(Duration(hours: r['duration'] as int));
+    if (endTime.isAfter(now)) {
+      return true;
+    }
+  }
+  return false;
+}
+
+// Add this function before the class definition
+Future<bool> checkSlotAvailability(
+  String courtId,
+  DateTime selectedTime,
+  int duration,
+  String size,
+) async {
+  try {
+    final date = selectedTime.toIso8601String().split('T')[0];
+
+    // Fetch court details to get the number of fields for the selected size
+    final courtResponse = await Supabase.instance.client
+        .from('courts')
+        .select(
+            'size1, number_of_fields1, size2, number_of_fields2, size3, number_of_fields3')
+        .eq('id', courtId)
+        .single();
+
+    int? numberOfFields;
+    if (courtResponse['size1'] == size) {
+      numberOfFields = courtResponse['number_of_fields1'];
+    } else if (courtResponse['size2'] == size) {
+      numberOfFields = courtResponse['number_of_fields2'];
+    } else if (courtResponse['size3'] == size) {
+      numberOfFields = courtResponse['number_of_fields3'];
+    }
+
+    if (numberOfFields == null) {
+      return false; // Size not found
+    }
+
+    // Fetch reservations for that court, date, and size
+    final reservationsResponse = await Supabase.instance.client
+        .from('reservations')
+        .select('start_time, duration')
+        .eq('court_id', courtId)
+        .eq('date', date)
+        .eq('size', size);
+
+    List<Map<String, dynamic>> reservations = [];
+    for (var r in reservationsResponse as List<dynamic>) {
+      final startHour = int.parse(r['start_time'].split(':')[0]);
+      final startMinute = int.parse(r['start_time'].split(':')[1]);
+      final reservationStartTime = DateTime(
+        selectedTime.year,
+        selectedTime.month,
+        selectedTime.day,
+        startHour,
+        startMinute,
+      );
+      reservations.add({
+        'start_time': reservationStartTime,
+        'duration': r['duration'],
+      });
+    }
+
+    // Calculate overlapping reservations
+    DateTime slotStart = selectedTime;
+    DateTime slotEnd = slotStart.add(Duration(hours: duration));
+
+    List<Map<String, dynamic>> overlapping = reservations.where((r) {
+      DateTime rStart = r['start_time'];
+      DateTime rEnd = rStart.add(Duration(hours: r['duration']));
+      return rStart.isBefore(slotEnd) && rEnd.isAfter(slotStart);
+    }).toList();
+
+    // Calculate max concurrency
+    List<Map<String, dynamic>> events = [];
+    for (var r in overlapping) {
+      DateTime rStart = r['start_time'];
+      DateTime rEnd = rStart.add(Duration(hours: r['duration']));
+      DateTime effectiveStart = rStart.isAfter(slotStart) ? rStart : slotStart;
+      DateTime effectiveEnd = rEnd.isBefore(slotEnd) ? rEnd : slotEnd;
+      events.add({'time': effectiveStart, 'type': 'start'});
+      events.add({'time': effectiveEnd, 'type': 'end'});
+    }
+
+    events.sort((a, b) {
+      int cmp = a['time'].compareTo(b['time']);
+      if (cmp == 0) {
+        if (a['type'] == 'end' && b['type'] == 'start') return -1;
+        if (a['type'] == 'start' && b['type'] == 'end') return 1;
+      }
+      return cmp;
+    });
+
+    int counter = 0;
+    int maxCounter = 0;
+    for (var event in events) {
+      if (event['type'] == 'start') {
+        counter++;
+        maxCounter = counter > maxCounter ? counter : maxCounter;
+      } else {
+        counter--;
+      }
+    }
+
+    return maxCounter < numberOfFields;
+  } catch (e) {
+    print('Error checking slot availability: $e');
+    return false;
+  }
+}
+
 class CourtDetailsScreen extends StatefulWidget {
   final String id;
   final String name;
@@ -189,7 +335,7 @@ class _CourtDetailsScreenState extends State<CourtDetailsScreen> {
                 const SizedBox(height: 4),
                 Text(
                   _selectedTimeSlot != null
-                      ? "${_formatSelectedTime(_selectedTimeSlot!)} (${_selectedDuration} Hour${_selectedDuration > 1 ? "s" : ""})"
+                      ? "${_formatSelectedTime(_selectedTimeSlot!)} ($_selectedDuration Hour${_selectedDuration > 1 ? "s" : ""})"
                       : "",
                   style: const TextStyle(
                     fontSize: 16,
@@ -220,6 +366,17 @@ class _CourtDetailsScreenState extends State<CourtDetailsScreen> {
                         return;
                       }
 
+                      // Check if user has an active booking
+                      if (await hasActiveBooking(userId)) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text(
+                                'You already have a booking. Only one booking is allowed.'),
+                          ),
+                        );
+                        return;
+                      }
+
                       final date =
                           _selectedTimeSlot!.toIso8601String().split('T')[0];
                       final startTime =
@@ -227,33 +384,47 @@ class _CourtDetailsScreenState extends State<CourtDetailsScreen> {
                       final duration = _selectedDuration;
                       final size = _selectedSize!;
 
-                      try {
-                        await Supabase.instance.client
-                            .from('reservations')
-                            .insert({
-                          'user_id': userId,
-                          'court_id': widget.id,
-                          'date': date,
-                          'start_time': startTime,
-                          'duration': duration,
-                          'size': size,
-                        });
+                      bool isAvailable = await checkSlotAvailability(
+                        widget.id,
+                        _selectedTimeSlot!,
+                        duration,
+                        size,
+                      );
+
+                      if (isAvailable) {
+                        try {
+                          await Supabase.instance.client
+                              .from('reservations')
+                              .insert({
+                            'user_id': userId,
+                            'court_id': widget.id,
+                            'date': date,
+                            'start_time': startTime,
+                            'duration': duration,
+                            'size': size,
+                          });
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                                content: Text('Reservation successful!')),
+                          );
+                        } catch (e) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                                content: Text('Error making reservation: $e')),
+                          );
+                        }
+                      } else {
                         ScaffoldMessenger.of(context).showSnackBar(
                           const SnackBar(
-                              content: Text('Reservation successful!')),
-                        );
-                      } catch (e) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                              content: Text('Error making reservation: $e')),
+                            content: Text(
+                                'Selected slot is no longer available. Please choose another slot.'),
+                          ),
                         );
                       }
                     }
                   : null,
-              child: const Text(
-                'Reserve',
-                style: TextStyle(fontSize: 16, color: Colors.white),
-              ),
+              child: const Text('Reserve',
+                  style: TextStyle(fontSize: 16, color: Colors.white)),
             ),
           ],
         ),
