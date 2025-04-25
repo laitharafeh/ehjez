@@ -7,11 +7,52 @@ import 'package:url_launcher/url_launcher.dart';
 
 final String pollQuestion = "This was sent from ehjez";
 
-void _openWhatsAppPoll(String name, DateTime selectedTime) async {
-  String formattedDate =
-      "${selectedTime.day.toString().padLeft(2, '0')}/${selectedTime.month.toString().padLeft(2, '0')}/${selectedTime.year}";
-  String message = "*$name - $formattedDate*\nYes or No?";
+void _openWhatsAppPoll(String name, DateTime selectedTime, int duration) async {
+  // Calculate end time
+  DateTime endTime = selectedTime.add(Duration(hours: duration));
 
+  // Format start and end times
+  String startTimeFormatted = _formatTime(selectedTime);
+  String endTimeFormatted = _formatTime(endTime);
+  String timeSlot = "$startTimeFormatted - $endTimeFormatted";
+
+  // Get day of the week
+  final daysOfWeek = [
+    'Monday',
+    'Tuesday',
+    'Wednesday',
+    'Thursday',
+    'Friday',
+    'Saturday',
+    'Sunday'
+  ];
+  String dayOfWeek = daysOfWeek[selectedTime.weekday - 1];
+
+  // Format date as "22 April"
+  final months = [
+    'January',
+    'February',
+    'March',
+    'April',
+    'May',
+    'June',
+    'July',
+    'August',
+    'September',
+    'October',
+    'November',
+    'December'
+  ];
+  String dateFormatted =
+      "${selectedTime.day} ${months[selectedTime.month - 1]}";
+
+  // Combine day of week and date
+  String dayAndDate = "$dayOfWeek, $dateFormatted";
+
+  // Construct the message
+  String message = "$name\n$timeSlot\n$dayAndDate\nYes or No?";
+
+  // Encode and launch WhatsApp
   final encodedMessage = Uri.encodeComponent(message);
   final url = "https://wa.me/?text=$encodedMessage";
 
@@ -20,6 +61,19 @@ void _openWhatsAppPoll(String name, DateTime selectedTime) async {
   } else {
     throw "Could not open WhatsApp";
   }
+}
+
+// Helper method to format a DateTime (e.g., "8:00 PM")
+String _formatTime(DateTime time) {
+  int hour = time.hour;
+  final minute = time.minute.toString().padLeft(2, '0');
+  String period = hour >= 12 ? 'PM' : 'AM';
+  if (hour > 12) {
+    hour -= 12;
+  } else if (hour == 0) {
+    hour = 12;
+  }
+  return '$hour:$minute $period';
 }
 
 Future<bool> hasActiveBooking(String userId) async {
@@ -345,6 +399,18 @@ class _CourtDetailsScreenState extends State<CourtDetailsScreen> {
                 ),
               ],
             ),
+            IconButton(
+              icon: Icon(
+                Icons.wechat,
+                color: _selectedTimeSlot != null
+                    ? ehjezGreen
+                    : Colors.grey.shade400,
+              ),
+              onPressed: _selectedTimeSlot != null
+                  ? () => _openWhatsAppPoll(
+                      widget.name, _selectedTimeSlot!, _selectedDuration)
+                  : null,
+            ),
             ElevatedButton(
               style: ElevatedButton.styleFrom(
                 backgroundColor: _selectedTimeSlot != null
@@ -425,7 +491,7 @@ class _CourtDetailsScreenState extends State<CourtDetailsScreen> {
                       }
                     }
                   : null,
-              child: const Text('Reserve',
+              child: const Text('Confirm',
                   style: TextStyle(fontSize: 16, color: Colors.white)),
             ),
           ],
