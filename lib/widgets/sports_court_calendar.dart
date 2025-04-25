@@ -201,6 +201,10 @@ class _SportsCourtCalendarState extends State<SportsCourtCalendar> {
       return [];
     }
 
+    final now = DateTime.now();
+    final isToday =
+        day.year == now.year && day.month == now.month && day.day == now.day;
+
     final dayStart = DateTime(
       day.year,
       day.month,
@@ -227,10 +231,15 @@ class _SportsCourtCalendarState extends State<SportsCourtCalendar> {
     DateTime currentTime = dayStart;
 
     while (true) {
+      // if it's today and this slot has already started, skip it
+      if (isToday && currentTime.isBefore(now)) {
+        currentTime = currentTime.add(const Duration(hours: 1));
+        if (currentTime.isAfter(dayEnd)) break;
+        continue;
+      }
+
       final slotEnd = currentTime.add(Duration(hours: _selectedDuration));
-
       if (_selectedDuration == 2 && slotEnd.isAfter(dayEnd)) break;
-
       if (currentTime.isAtSameMomentAs(dayEnd) || currentTime.isAfter(dayEnd)) {
         break;
       }

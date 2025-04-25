@@ -1,6 +1,7 @@
 import 'package:ehjez/constants.dart';
 import 'package:ehjez/widgets/image_slider.dart';
 import 'package:ehjez/widgets/sports_court_calendar.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -202,7 +203,9 @@ Future<bool> checkSlotAvailability(
 
     return maxCounter < numberOfFields;
   } catch (e) {
-    print('Error checking slot availability: $e');
+    if (kDebugMode) {
+      print('Error checking slot availability: $e');
+    }
     return false;
   }
 }
