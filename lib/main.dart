@@ -1,5 +1,3 @@
-import 'package:ehjez/screens/auth/login_web_screen.dart';
-import 'package:flutter/foundation.dart';
 import '../auth_checker.dart';
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -19,9 +17,7 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return const MaterialApp(
       debugShowCheckedModeBanner: false,
-      home: kIsWeb
-          ? LoginWebScreen()
-          : AuthChecker(), // This will check session and navigate
+      home: AuthChecker(), // This will check session and navigate
     );
   }
 }
