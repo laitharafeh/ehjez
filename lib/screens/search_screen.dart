@@ -171,6 +171,7 @@ class _SearchScreenState extends State<SearchScreen> {
                                 phone: court['phone'] ?? "No contact",
                                 size: court['size'] ?? "N/A",
                                 price: court['price'] ?? "N/A",
+                                price2: court['price2'] ?? 0,
                                 imageUrl: court['image_url'] ?? "",
                                 image2Url: court['image2_url'] ?? "",
                                 image3Url: court['image3_url'] ?? "",
@@ -184,7 +185,6 @@ class _SearchScreenState extends State<SearchScreen> {
                           location: court['location'] ?? "Not specified",
                           phone: court['phone'] ?? "No contact",
                           size: court['size'] ?? "N/A",
-                          price: court['price'] ?? "N/A",
                           imageUrl: court['image_url'] ?? "",
                         ),
                       );

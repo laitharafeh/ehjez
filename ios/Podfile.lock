@@ -31,7 +31,7 @@ EXTERNAL SOURCES:
     :path: ".symlinks/plugins/url_launcher_ios/ios"
 
 SPEC CHECKSUMS:
-  app_links: 3da4c36b46cac3bf24eb897f1a6ce80bda109874
+  app_links: 76b66b60cc809390ca1ad69bfd66b998d2387ac7
   Flutter: e0871f40cf51350855a761d2e70bf5af5b9b5de7
   path_provider_foundation: 080d55be775b7414fd5a5ef3ac137b97b097e564
   shared_preferences_foundation: 9e1978ff2562383bd5676f64ec4e9aa8fa06a6f7

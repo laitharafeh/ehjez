@@ -6,7 +6,6 @@ class CourtListTile extends StatelessWidget {
   final String location;
   final String phone;
   final String size;
-  final String price;
   final String imageUrl;
 
   const CourtListTile({
@@ -16,7 +15,6 @@ class CourtListTile extends StatelessWidget {
     required this.location,
     required this.phone,
     required this.size,
-    required this.price,
     required this.imageUrl,
   });
 

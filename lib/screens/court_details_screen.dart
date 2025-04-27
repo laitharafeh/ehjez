@@ -217,7 +217,8 @@ class CourtDetailsScreen extends StatefulWidget {
   final String location;
   final String phone;
   final String size;
-  final String price;
+  final int price;
+  final int price2;
   final String imageUrl;
   final String image2Url;
   final String image3Url;
@@ -231,6 +232,7 @@ class CourtDetailsScreen extends StatefulWidget {
     required this.phone,
     required this.size,
     required this.price,
+    required this.price2,
     required this.imageUrl,
     required this.image2Url,
     required this.image3Url,
@@ -311,7 +313,8 @@ class _CourtDetailsScreenState extends State<CourtDetailsScreen> {
                           _infoRow(
                               Icons.location_on, "Location", widget.location),
                           _infoRow(Icons.phone, "Phone", widget.phone),
-                          _infoRow(Icons.attach_money, "Price", widget.price),
+                          _infoRow(Icons.attach_money, "Price",
+                              widget.price.toString()),
                           const SizedBox(height: 10),
                           SizedBox(
                             width: double.infinity,
@@ -384,7 +387,7 @@ class _CourtDetailsScreenState extends State<CourtDetailsScreen> {
               children: [
                 Text(
                   _selectedTimeSlot != null
-                      ? "Price: ${widget.price} JDs"
+                      ? "Price: ${_selectedDuration == 2 ? widget.price2 : widget.price} JDs"
                       : "Select time slot",
                   style: const TextStyle(
                     fontSize: 18,
