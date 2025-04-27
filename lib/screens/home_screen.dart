@@ -42,7 +42,6 @@ class _HomeScreenState extends State<HomeScreen> {
           .from('courts')
           .select()
           .eq('featured', true)
-          .or('size1.eq.6v6,size2.eq.6v6,size3.eq.6v6')
           .limit(5); // Limit to 5 featured courts
 
       final List<Map<String, dynamic>> response3 = await supabase
@@ -56,7 +55,6 @@ class _HomeScreenState extends State<HomeScreen> {
           .from('courts')
           .select()
           .eq('featured', true)
-          .or('size1.eq.8v8,size2.eq.8v8,size3.eq.8v8')
           .limit(5); // Limit to 5 featured courts
 
       if (!mounted) return;
@@ -114,9 +112,9 @@ class _HomeScreenState extends State<HomeScreen> {
                                   location:
                                       court['location'] ?? "Not specified",
                                   phone: court['phone'] ?? "No contact",
-                                  size: court['size'] ?? "N/A",
-                                  price: court['price'] ?? "N/A",
-                                  price2: court['price2'] ?? "N/A",
+                                  //size: court['size'] ?? "N/A",
+                                  // price: court['price'] ?? "N/A",
+                                  // price2: court['price2'] ?? "N/A",
                                   imageUrl: court['image_url'] ?? "",
                                   image2Url: court['image2_url'] ?? "",
                                   image3Url: court['image3_url'] ?? "",
@@ -166,9 +164,9 @@ class _HomeScreenState extends State<HomeScreen> {
                                   location:
                                       court['location'] ?? "Not specified",
                                   phone: court['phone'] ?? "No contact",
-                                  size: court['size'] ?? "N/A",
-                                  price: court['price'] ?? "N/A",
-                                  price2: court['price2'] ?? "N/A",
+                                  //size: court['size'] ?? "N/A",
+                                  // price: court['price'] ?? "N/A",
+                                  // price2: court['price2'] ?? "N/A",
                                   imageUrl: court['image_url'] ?? "",
                                   image2Url: court['image2_url'] ?? "",
                                   image3Url: court['image3_url'] ?? "",
@@ -213,9 +211,9 @@ class _HomeScreenState extends State<HomeScreen> {
                                   location:
                                       court['location'] ?? "Not specified",
                                   phone: court['phone'] ?? "No contact",
-                                  size: court['size'] ?? "N/A",
-                                  price: court['price'] ?? "N/A",
-                                  price2: court['price2'] ?? "N/A",
+                                  //size: court['size'] ?? "N/A",
+                                  // price: court['price'] ?? "N/A",
+                                  // price2: court['price2'] ?? "N/A",
                                   imageUrl: court['image_url'] ?? "",
                                   image2Url: court['image2_url'] ?? "",
                                   image3Url: court['image3_url'] ?? "",
@@ -260,9 +258,9 @@ class _HomeScreenState extends State<HomeScreen> {
                                   location:
                                       court['location'] ?? "Not specified",
                                   phone: court['phone'] ?? "No contact",
-                                  size: court['size'] ?? "N/A",
-                                  price: court['price'] ?? "N/A",
-                                  price2: court['price2'] ?? "N/A",
+                                  //size: court['size'] ?? "N/A",
+                                  // price: court['price'] ?? "N/A",
+                                  // price2: court['price2'] ?? "N/A",
                                   imageUrl: court['image_url'] ?? "",
                                   image2Url: court['image2_url'] ?? "",
                                   image3Url: court['image3_url'] ?? "",

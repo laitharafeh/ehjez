@@ -8,6 +8,28 @@ import 'package:url_launcher/url_launcher.dart';
 
 final String pollQuestion = "This was sent from ehjez";
 
+Future<void> _launchURL() async {
+  final Uri uri = Uri.parse('https://maps.app.goo.gl/UTYee2MTPFi67wna9');
+
+  if (await canLaunchUrl(uri)) {
+    await launchUrl(uri, mode: LaunchMode.externalApplication);
+  } else {
+    throw "Could not launch";
+  }
+}
+
+String _formatSelectedTime(DateTime time) {
+  int hour = time.hour;
+  final minute = time.minute.toString().padLeft(2, '0');
+  String period = hour >= 12 ? 'PM' : 'AM';
+  if (hour > 12) {
+    hour -= 12;
+  } else if (hour == 0) {
+    hour = 12;
+  }
+  return '$hour:$minute $period';
+}
+
 void _openWhatsAppPoll(String name, DateTime selectedTime, int duration) async {
   // Calculate end time
   DateTime endTime = selectedTime.add(Duration(hours: duration));
@@ -104,7 +126,6 @@ Future<bool> hasActiveBooking(String userId) async {
   return false;
 }
 
-// Add this function before the class definition
 Future<bool> checkSlotAvailability(
   String courtId,
   DateTime selectedTime,
@@ -114,25 +135,18 @@ Future<bool> checkSlotAvailability(
   try {
     final date = selectedTime.toIso8601String().split('T')[0];
 
-    // Fetch court details to get the number of fields for the selected size
-    final courtResponse = await Supabase.instance.client
-        .from('courts')
-        .select(
-            'size1, number_of_fields1, size2, number_of_fields2, size3, number_of_fields3')
-        .eq('id', courtId)
+    // Get number of fields from courts_size_price table
+    final sizeResponse = await Supabase.instance.client
+        .from('courts_size_price')
+        .select('number_of_fields')
+        .eq('court_id', courtId)
+        .eq('size', size)
         .single();
 
-    int? numberOfFields;
-    if (courtResponse['size1'] == size) {
-      numberOfFields = courtResponse['number_of_fields1'];
-    } else if (courtResponse['size2'] == size) {
-      numberOfFields = courtResponse['number_of_fields2'];
-    } else if (courtResponse['size3'] == size) {
-      numberOfFields = courtResponse['number_of_fields3'];
-    }
+    final numberOfFields = sizeResponse['number_of_fields'] as int?;
 
-    if (numberOfFields == null) {
-      return false; // Size not found
+    if (numberOfFields == null || numberOfFields <= 0) {
+      return false;
     }
 
     // Fetch reservations for that court, date, and size
@@ -216,9 +230,6 @@ class CourtDetailsScreen extends StatefulWidget {
   final String category;
   final String location;
   final String phone;
-  final String size;
-  final int price;
-  final int price2;
   final String imageUrl;
   final String image2Url;
   final String image3Url;
@@ -230,9 +241,6 @@ class CourtDetailsScreen extends StatefulWidget {
     required this.category,
     required this.location,
     required this.phone,
-    required this.size,
-    required this.price,
-    required this.price2,
     required this.imageUrl,
     required this.image2Url,
     required this.image3Url,
@@ -244,30 +252,31 @@ class CourtDetailsScreen extends StatefulWidget {
 
 class _CourtDetailsScreenState extends State<CourtDetailsScreen> {
   DateTime? _selectedTimeSlot;
-  int _selectedDuration = 2; // default duration
-  String? _selectedSize; // Added to store selected size
+  int _selectedDuration = 2;
+  String? _selectedSize;
+  int? _selectedPrice1;
+  int? _selectedPrice2;
 
-  Future<void> _launchURL() async {
-    final Uri uri = Uri.parse('https://maps.app.goo.gl/UTYee2MTPFi67wna9');
+  // ... keep existing helper methods (_launchURL, _formatSelectedTime) ...
 
-    if (await canLaunchUrl(uri)) {
-      await launchUrl(uri, mode: LaunchMode.externalApplication);
-    } else {
-      throw "Could not launch";
+  Future<void> _fetchPricesForSize(String size) async {
+    try {
+      final response = await Supabase.instance.client
+          .from('courts_size_price')
+          .select('price1, price2')
+          .eq('court_id', widget.id)
+          .eq('size', size)
+          .single();
+
+      setState(() {
+        _selectedPrice1 = response['price1'] as int?;
+        _selectedPrice2 = response['price2'] as int?;
+      });
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error fetching prices: $e')),
+      );
     }
-  }
-
-  // Helper method to format a DateTime (e.g. "3:00 PM")
-  String _formatSelectedTime(DateTime time) {
-    int hour = time.hour;
-    final minute = time.minute.toString().padLeft(2, '0');
-    String period = hour >= 12 ? 'PM' : 'AM';
-    if (hour > 12) {
-      hour -= 12;
-    } else if (hour == 0) {
-      hour = 12;
-    }
-    return '$hour:$minute $period';
   }
 
   @override
@@ -288,12 +297,8 @@ class _CourtDetailsScreenState extends State<CourtDetailsScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Image Slideshow
             ImageSlider(imageUrls: imageUrls),
-
             const SizedBox(height: 20),
-
-            // Court Information
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16),
               child: Column(
@@ -313,8 +318,6 @@ class _CourtDetailsScreenState extends State<CourtDetailsScreen> {
                           _infoRow(
                               Icons.location_on, "Location", widget.location),
                           _infoRow(Icons.phone, "Phone", widget.phone),
-                          _infoRow(Icons.attach_money, "Price",
-                              widget.price.toString()),
                           const SizedBox(height: 10),
                           SizedBox(
                             width: double.infinity,
@@ -337,15 +340,13 @@ class _CourtDetailsScreenState extends State<CourtDetailsScreen> {
                       ),
                     ),
                   ),
-
                   const SizedBox(height: 15),
-
-                  // Calendar widget with callbacks
                   SportsCourtCalendar(
                     courtId: widget.id,
                     name: widget.name,
-                    onTimeSlotSelected:
-                        (DateTime selectedSlot, int duration, String size) {
+                    onTimeSlotSelected: (DateTime selectedSlot, int duration,
+                        String size) async {
+                      await _fetchPricesForSize(size);
                       setState(() {
                         _selectedTimeSlot = selectedSlot;
                         _selectedDuration = duration;
@@ -355,10 +356,12 @@ class _CourtDetailsScreenState extends State<CourtDetailsScreen> {
                     onSelectionReset: () {
                       setState(() {
                         _selectedTimeSlot = null;
+                        _selectedSize = null;
+                        _selectedPrice1 = null;
+                        _selectedPrice2 = null;
                       });
                     },
                   ),
-
                   const SizedBox(height: 50),
                 ],
               ),
@@ -387,7 +390,7 @@ class _CourtDetailsScreenState extends State<CourtDetailsScreen> {
               children: [
                 Text(
                   _selectedTimeSlot != null
-                      ? "Price: ${_selectedDuration == 2 ? widget.price2 : widget.price} JDs"
+                      ? "Price: ${_selectedDuration == 2 ? (_selectedPrice2 ?? 'N/A') : (_selectedPrice1 ?? 'N/A')} JDs"
                       : "Select time slot",
                   style: const TextStyle(
                     fontSize: 18,

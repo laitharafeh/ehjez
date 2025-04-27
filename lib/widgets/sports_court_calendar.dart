@@ -6,8 +6,7 @@ import 'package:table_calendar/table_calendar.dart';
 class SportsCourtCalendar extends StatefulWidget {
   final String courtId;
   final String name;
-  final void Function(DateTime, int, String)?
-      onTimeSlotSelected; // Updated callback
+  final void Function(DateTime, int, String)? onTimeSlotSelected;
   final VoidCallback? onSelectionReset;
 
   const SportsCourtCalendar({
@@ -41,60 +40,62 @@ class _SportsCourtCalendarState extends State<SportsCourtCalendar> {
     super.initState();
     _focusedDay = DateTime.now();
     _selectedDay = DateTime.now();
-    _fetchCourtTime();
+    _fetchCourtData();
   }
 
-  Future<void> _fetchCourtTime() async {
+  Future<void> _fetchCourtData() async {
     setState(() => _isLoading = true);
 
     try {
-      final response = await Supabase.instance.client
+      // Fetch court timing information
+      final courtResponse = await Supabase.instance.client
           .from('courts')
-          .select(
-              'start_time, end_time, size1, number_of_fields1, size2, number_of_fields2, size3, number_of_fields3')
+          .select('start_time, end_time')
           .eq('id', widget.courtId)
           .single();
 
-      if (response.isNotEmpty) {
+      // Fetch size information from the new table
+      final sizesResponse = await Supabase.instance.client
+          .from('courts_size_price')
+          .select('size, number_of_fields')
+          .eq('court_id', widget.courtId);
+
+      // Process court timings
+      if (courtResponse.isNotEmpty) {
         final now = DateTime.now();
-        String endTimeStr = response['end_time'] as String;
+        String endTimeStr = courtResponse['end_time'] as String;
 
         if (endTimeStr == "23:59:59") {
           _isEndTimeSpecial = true;
         }
 
-        int startHour = int.parse(response['start_time'].split(':')[0]);
+        int startHour = int.parse(courtResponse['start_time'].split(':')[0]);
         int endHour = int.parse(endTimeStr.split(':')[0]);
 
         _courtStartTime = DateTime(now.year, now.month, now.day, startHour);
         _courtEndTime = endHour >= startHour
             ? DateTime(now.year, now.month, now.day, endHour)
             : DateTime(now.year, now.month, now.day + 1, endHour);
-
-        _courtSizes.clear();
-        if (response['size1'] != null &&
-            response['size1'].isNotEmpty &&
-            response['number_of_fields1'] > 0) {
-          _courtSizes[response['size1']] = response['number_of_fields1'];
-        }
-        if (response['size2'] != null &&
-            response['size2'].isNotEmpty &&
-            response['number_of_fields2'] > 0) {
-          _courtSizes[response['size2']] = response['number_of_fields2'];
-        }
-        if (response['size3'] != null &&
-            response['size3'].isNotEmpty &&
-            response['number_of_fields3'] > 0) {
-          _courtSizes[response['size3']] = response['number_of_fields3'];
-        }
-
-        if (_courtSizes.isNotEmpty) {
-          _selectedSize = _courtSizes.keys.first;
-          _numberOfFields = _courtSizes[_selectedSize];
-        }
-
-        await _fetchReservations();
       }
+
+      // Process sizes
+      _courtSizes.clear();
+      if (sizesResponse.isNotEmpty) {
+        for (var sizeRecord in sizesResponse) {
+          final size = sizeRecord['size'] as String?;
+          final number = sizeRecord['number_of_fields'] as int?;
+          if (size != null && size.isNotEmpty && number != null && number > 0) {
+            _courtSizes[size] = number;
+          }
+        }
+      }
+
+      if (_courtSizes.isNotEmpty) {
+        _selectedSize = _courtSizes.keys.first;
+        _numberOfFields = _courtSizes[_selectedSize];
+      }
+
+      await _fetchReservations();
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -105,7 +106,6 @@ class _SportsCourtCalendarState extends State<SportsCourtCalendar> {
       _courtEndTime = DateTime.now()
           .copyWith(hour: 2, minute: 0)
           .add(const Duration(days: 1));
-      await _fetchReservations();
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
