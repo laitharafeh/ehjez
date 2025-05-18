@@ -6,8 +6,6 @@ import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
 
-final String pollQuestion = "This was sent from ehjez";
-
 Future<void> _launchURL() async {
   final Uri uri = Uri.parse('https://maps.app.goo.gl/UTYee2MTPFi67wna9');
 
@@ -51,7 +49,7 @@ void _openWhatsAppPoll(String name, DateTime selectedTime, int duration) async {
   ];
   String dayOfWeek = daysOfWeek[selectedTime.weekday - 1];
 
-  // Format date as "22 April"
+  // Format date as "DD Month"
   final months = [
     'January',
     'February',
@@ -256,8 +254,7 @@ class _CourtDetailsScreenState extends State<CourtDetailsScreen> {
   String? _selectedSize;
   int? _selectedPrice1;
   int? _selectedPrice2;
-
-  // ... keep existing helper methods (_launchURL, _formatSelectedTime) ...
+  double commission = 0.0;
 
   Future<void> _fetchPricesForSize(String size) async {
     try {
@@ -479,6 +476,9 @@ class _CourtDetailsScreenState extends State<CourtDetailsScreen> {
                             'start_time': startTime,
                             'duration': duration,
                             'size': size,
+                            'commission': _selectedDuration == 2
+                                ? (_selectedPrice2! * 0.03)
+                                : (_selectedPrice1! * 0.03)
                           });
                           ScaffoldMessenger.of(context).showSnackBar(
                             const SnackBar(

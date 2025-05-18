@@ -1,5 +1,5 @@
 name: ehjez
-description: "A new Flutter project."
+description: "Ehjez customer side app for reservations"
 # The following line prevents the package from being accidentally published to
 # pub.dev using `flutter pub publish`. This is preferred for private packages.
 publish_to: 'none' # Remove this line if you wish to publish to pub.dev
@@ -41,6 +41,7 @@ dependencies:
   table_calendar: ^3.2.0
   smooth_page_indicator: ^1.2.1
   google_fonts: ^6.2.1
+  flutter_native_splash: ^2.4.6
 
 dev_dependencies:
   flutter_test:
@@ -103,3 +104,8 @@ flutter:
   #
   # For details regarding fonts from package dependencies,
   # see https://flutter.dev/to/font-from-package
+flutter_native_splash:
+  color: "#ffffff"           # background color
+  image: assets/ahjez_appbar.png     # your app logo
+  android: true
+  ios: true

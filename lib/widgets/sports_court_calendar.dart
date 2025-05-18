@@ -54,7 +54,7 @@ class _SportsCourtCalendarState extends State<SportsCourtCalendar> {
           .eq('id', widget.courtId)
           .single();
 
-      // Fetch size information from the new table
+      // Fetch size information from the sizes table table
       final sizesResponse = await Supabase.instance.client
           .from('courts_size_price')
           .select('size, number_of_fields')

@@ -15,7 +15,10 @@ class SearchScreen extends StatefulWidget {
   State<SearchScreen> createState() => _SearchScreenState();
 }
 
-class _SearchScreenState extends State<SearchScreen> {
+class _SearchScreenState extends State<SearchScreen>
+    with AutomaticKeepAliveClientMixin<SearchScreen> {
+  @override
+  bool get wantKeepAlive => true;
   final SupabaseClient supabase = Supabase.instance.client;
   final ScrollController _scrollController = ScrollController();
   Timer? _debounce;
@@ -118,6 +121,7 @@ class _SearchScreenState extends State<SearchScreen> {
 
   @override
   Widget build(BuildContext context) {
+    super.build(context);
     return Scaffold(
       appBar: CustomAppBar(),
       body: Column(
