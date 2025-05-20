@@ -478,7 +478,10 @@ class _CourtDetailsScreenState extends State<CourtDetailsScreen> {
                             'size': size,
                             'commission': _selectedDuration == 2
                                 ? (_selectedPrice2! * 0.03)
-                                : (_selectedPrice1! * 0.03)
+                                : (_selectedPrice1! * 0.03),
+                            'price': _selectedDuration == 2
+                                ? _selectedPrice2
+                                : _selectedPrice1
                           });
                           ScaffoldMessenger.of(context).showSnackBar(
                             const SnackBar(
