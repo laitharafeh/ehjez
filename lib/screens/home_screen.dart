@@ -38,11 +38,15 @@ class _HomeScreenState extends State<HomeScreen> {
           .eq('featured', true)
           .limit(5); // Limit to 5 featured courts
 
-      final List<Map<String, dynamic>> response2 = await supabase
+      // 1) grab all court_ids that have size “6v6”
+      final response2 = await supabase
           .from('courts')
           .select()
           .eq('featured', true)
-          .limit(5); // Limit to 5 featured courts
+          .or('category.eq.Football')
+          .limit(5);
+
+      // Limit to 5 featured courts
 
       final List<Map<String, dynamic>> response3 = await supabase
           .from('courts')
@@ -55,6 +59,7 @@ class _HomeScreenState extends State<HomeScreen> {
           .from('courts')
           .select()
           .eq('featured', true)
+          .or('category.eq.Football')
           .limit(5); // Limit to 5 featured courts
 
       if (!mounted) return;
