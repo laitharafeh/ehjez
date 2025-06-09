@@ -76,12 +76,6 @@ class FeaturedCourtListTile extends StatelessWidget {
                         labelStyle: const TextStyle(
                             fontSize: 12, fontWeight: FontWeight.w600),
                       ),
-                      Chip(
-                        label: Text(category),
-                        backgroundColor: categoryColor,
-                        labelStyle: const TextStyle(
-                            fontSize: 12, fontWeight: FontWeight.w600),
-                      ),
                     ],
                   ),
                   const SizedBox(height: 8),
