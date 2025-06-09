@@ -21,15 +21,6 @@ class CourtListTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     Color categoryColor = const Color(0xFFC8E6C9);
-    // if (category == "Football") {
-    //   categoryColor = const Color(0xFFDCEDC8); // light green
-    // } else if (category == "Padel") {
-    //   categoryColor = const Color(0xFFB3E5FC); // light blue
-    //   //categoryColor = const Color(0xFFFFF9C4); // Volley
-    // } else {
-    //   categoryColor =
-    //       const Color(0xFF9E9E9E); // Default color for other categories
-    // }
 
     return Card(
       margin: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 12.0),
