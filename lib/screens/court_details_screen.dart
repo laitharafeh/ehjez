@@ -71,7 +71,7 @@ void _openWhatsAppPoll(String name, DateTime selectedTime, int duration) async {
   String dayAndDate = "$dayOfWeek, $dateFormatted";
 
   // Construct the message
-  String message = "$name\n$timeSlot\n$dayAndDate\nYes or No?";
+  String message = "$name\n$timeSlot\n$dayAndDate\n";
 
   // Encode and launch WhatsApp
   final encodedMessage = Uri.encodeComponent(message);
@@ -429,78 +429,58 @@ class _CourtDetailsScreenState extends State<CourtDetailsScreen> {
               ),
               onPressed: _selectedTimeSlot != null
                   ? () async {
-                      final userId =
-                          Supabase.instance.client.auth.currentUser?.id;
-                      if (userId == null) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                              content:
-                                  Text('Please log in to make a reservation')),
-                        );
-                        return;
-                      }
-
-                      // Check if user has an active booking
-                      if (await hasActiveBooking(userId)) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text(
-                                'You already have a booking. Only one booking is allowed.'),
-                          ),
-                        );
-                        return;
-                      }
-
-                      final date =
-                          _selectedTimeSlot!.toIso8601String().split('T')[0];
-                      final startTime =
-                          '${_selectedTimeSlot!.hour.toString().padLeft(2, '0')}:${_selectedTimeSlot!.minute.toString().padLeft(2, '0')}:00';
-                      final duration = _selectedDuration;
-                      final size = _selectedSize!;
-
-                      bool isAvailable = await checkSlotAvailability(
-                        widget.id,
-                        _selectedTimeSlot!,
-                        duration,
-                        size,
+                      // Show confirmation dialog
+                      bool? confirm = await showDialog<bool>(
+                        context: context,
+                        builder: (BuildContext context) {
+                          return AlertDialog(
+                            title: const Text('Confirm Reservation'),
+                            content: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text('Court: ${widget.name}'),
+                                const SizedBox(height: 8),
+                                Text(
+                                    'Date: ${_selectedTimeSlot!.day}/${_selectedTimeSlot!.month}/${_selectedTimeSlot!.year}'),
+                                const SizedBox(height: 8),
+                                Text(
+                                    'Time: ${_formatSelectedTime(_selectedTimeSlot!)}'),
+                                const SizedBox(height: 8),
+                                Text(
+                                    'Duration: $_selectedDuration Hour${_selectedDuration > 1 ? "s" : ""}'),
+                                const SizedBox(height: 8),
+                                Text('Size: $_selectedSize'),
+                                const SizedBox(height: 8),
+                                Text(
+                                    'Price: ${_selectedDuration == 2 ? _selectedPrice2 : _selectedPrice1} JDs'),
+                              ],
+                            ),
+                            actions: [
+                              TextButton(
+                                onPressed: () =>
+                                    Navigator.of(context).pop(false),
+                                child: const Text('Cancel'),
+                              ),
+                              ElevatedButton(
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: ehjezGreen,
+                                ),
+                                onPressed: () =>
+                                    Navigator.of(context).pop(true),
+                                child: const Text('Confirm',
+                                    style: TextStyle(color: Colors.white)),
+                              ),
+                            ],
+                          );
+                        },
                       );
 
-                      if (isAvailable) {
-                        try {
-                          await Supabase.instance.client
-                              .from('reservations')
-                              .insert({
-                            'user_id': userId,
-                            'court_id': widget.id,
-                            'date': date,
-                            'start_time': startTime,
-                            'duration': duration,
-                            'size': size,
-                            'commission': _selectedDuration == 2
-                                ? (_selectedPrice2! * 0.03)
-                                : (_selectedPrice1! * 0.03),
-                            'price': _selectedDuration == 2
-                                ? _selectedPrice2
-                                : _selectedPrice1
-                          });
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                                content: Text('Reservation successful!')),
-                          );
-                        } catch (e) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                                content: Text('Error making reservation: $e')),
-                          );
-                        }
-                      } else {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text(
-                                'Selected slot is no longer available. Please choose another slot.'),
-                          ),
-                        );
+                      if (confirm != true) {
+                        return;
                       }
+
+                      await _makeReservation();
                     }
                   : null,
               child: const Text('Confirm',
@@ -510,6 +490,71 @@ class _CourtDetailsScreenState extends State<CourtDetailsScreen> {
         ),
       ),
     );
+  }
+
+  Future<void> _makeReservation() async {
+    final userId = Supabase.instance.client.auth.currentUser?.id;
+    if (userId == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please log in to make a reservation')),
+      );
+      return;
+    }
+
+    // Check if user has an active booking
+    if (await hasActiveBooking(userId)) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content:
+              Text('You already have a booking. Only one booking is allowed.'),
+        ),
+      );
+      return;
+    }
+
+    final date = _selectedTimeSlot!.toIso8601String().split('T')[0];
+    final startTime =
+        '${_selectedTimeSlot!.hour.toString().padLeft(2, '0')}:${_selectedTimeSlot!.minute.toString().padLeft(2, '0')}:00';
+    final duration = _selectedDuration;
+    final size = _selectedSize!;
+
+    bool isAvailable = await checkSlotAvailability(
+      widget.id,
+      _selectedTimeSlot!,
+      duration,
+      size,
+    );
+
+    if (isAvailable) {
+      try {
+        await Supabase.instance.client.from('reservations').insert({
+          'user_id': userId,
+          'court_id': widget.id,
+          'date': date,
+          'start_time': startTime,
+          'duration': duration,
+          'size': size,
+          'commission': _selectedDuration == 2
+              ? (_selectedPrice2! * 0.03)
+              : (_selectedPrice1! * 0.03),
+          'price': _selectedDuration == 2 ? _selectedPrice2 : _selectedPrice1
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Reservation successful!')),
+        );
+      } catch (e) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error making reservation: $e')),
+        );
+      }
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+              'Selected slot is no longer available. Please choose another slot.'),
+        ),
+      );
+    }
   }
 
   Widget _infoRow(IconData icon, String label, String value) {
