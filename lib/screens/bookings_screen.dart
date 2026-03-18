@@ -52,9 +52,10 @@ class _BookingsScreenState extends State<BookingsScreen> {
     );
   }
 
-  Future<void> _deleteBooking(int bookingId, BuildContext context) async {
+  Future<void> _deleteBooking(int bookingId) async {
     try {
       await supabase.from('reservations').delete().eq('id', bookingId);
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Booking deleted successfully')),
       );
@@ -62,6 +63,7 @@ class _BookingsScreenState extends State<BookingsScreen> {
         _bookingsFuture = _fetchBookings();
       });
     } catch (error) {
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Error deleting booking: $error')),
       );
@@ -115,7 +117,7 @@ class _BookingsScreenState extends State<BookingsScreen> {
               ),
               onPressed: () {
                 final bookingId = booking['id'] as int;
-                _deleteBooking(bookingId, context);
+                _deleteBooking(bookingId);
               },
               child:
                   const Text('Cancel', style: TextStyle(color: Colors.white)),

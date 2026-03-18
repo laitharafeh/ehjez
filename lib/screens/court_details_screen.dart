@@ -265,11 +265,13 @@ class _CourtDetailsScreenState extends State<CourtDetailsScreen> {
           .eq('size', size)
           .single();
 
+      if (!mounted) return;
       setState(() {
         _selectedPrice1 = response['price1'] as int?;
         _selectedPrice2 = response['price2'] as int?;
       });
     } catch (e) {
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Error fetching prices: $e')),
       );
@@ -368,8 +370,8 @@ class _CourtDetailsScreenState extends State<CourtDetailsScreen> {
       ),
       bottomNavigationBar: Container(
         padding: const EdgeInsets.fromLTRB(40, 20, 25, 40),
-        decoration: const BoxDecoration(
-          color: Colors.white,
+        decoration: BoxDecoration(
+          color: Theme.of(context).scaffoldBackgroundColor,
           boxShadow: [
             BoxShadow(
               color: Colors.black12,
@@ -502,7 +504,9 @@ class _CourtDetailsScreenState extends State<CourtDetailsScreen> {
     }
 
     // Check if user has an active booking
-    if (await hasActiveBooking(userId)) {
+    final hasBooking = await hasActiveBooking(userId);
+    if (!mounted) return;
+    if (hasBooking) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content:
@@ -525,6 +529,7 @@ class _CourtDetailsScreenState extends State<CourtDetailsScreen> {
       size,
     );
 
+    if (!mounted) return;
     if (isAvailable) {
       try {
         await Supabase.instance.client.from('reservations').insert({
@@ -539,15 +544,18 @@ class _CourtDetailsScreenState extends State<CourtDetailsScreen> {
               : (_selectedPrice1! * 0.03),
           'price': _selectedDuration == 2 ? _selectedPrice2 : _selectedPrice1
         });
+        if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Reservation successful!')),
         );
       } catch (e) {
+        if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Error making reservation: $e')),
         );
       }
     } else {
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text(

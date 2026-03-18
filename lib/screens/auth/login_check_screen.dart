@@ -86,6 +86,7 @@ class LoginCheckScreen extends StatelessWidget {
                       if (isValidJordanianNumber(phonecontroller.text)) {
                         String finalNumber =
                             await buttonPress(phonecontroller.text, context);
+                        if (!context.mounted) return;
                         goToOtpScreen(context, finalNumber);
                       } else {
                         ScaffoldMessenger.of(context).showSnackBar(

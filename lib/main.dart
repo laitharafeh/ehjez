@@ -5,7 +5,7 @@ import 'keys.dart';
 
 Future<void> main() async {
   await Supabase.initialize(
-      url: 'https://vmwktzlripivknoqmwrc.supabase.co',
+      url: 'https://bjijwzpkctdodimnlhxk.supabase.co',
       anonKey: supabaseAnonKey);
   runApp(const MyApp());
 }
@@ -15,9 +15,12 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const MaterialApp(
+    return MaterialApp(
       debugShowCheckedModeBanner: false,
-      home: AuthChecker(), // This will check session and navigate
+      theme: ThemeData(
+        scaffoldBackgroundColor: const Color(0xFFFAF8F5), // egg white
+      ),
+      home: const AuthChecker(), // This will check session and navigate
     );
   }
 }

@@ -31,6 +31,7 @@ class OtpScreen extends StatelessWidget {
           // ScaffoldMessenger.of(context)
           //     .showSnackBar(SnackBar(content: Text(check.toString()))); // For Debugging
         }
+        if (!context.mounted) return;
         Navigator.pushAndRemoveUntil(
           context,
           MaterialPageRoute(builder: (context) => const BottomNav()),
@@ -38,6 +39,7 @@ class OtpScreen extends StatelessWidget {
         );
       }
     } catch (e) {
+      if (!context.mounted) return;
       ScaffoldMessenger.of(context)
           .showSnackBar(const SnackBar(content: Text('Error: Invalid Code')));
     }
