@@ -127,7 +127,7 @@ class HomeScreen extends ConsumerWidget {
                     return GestureDetector(
                       onTap: () => _goToDetails(context, court),
                       child: Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 8),
+                        padding: const EdgeInsets.symmetric(horizontal: 1),
                         child: FeaturedCourtListTile(
                           name: court.name,
                           category: court.category,
@@ -159,7 +159,7 @@ class HomeScreen extends ConsumerWidget {
                     return GestureDetector(
                       onTap: () => _goToDetails(context, court),
                       child: Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 8),
+                        padding: const EdgeInsets.symmetric(horizontal: 1),
                         child: SizeCourtListTile(
                           name: court.name,
                           category: court.category,
@@ -191,7 +191,7 @@ class HomeScreen extends ConsumerWidget {
                     return GestureDetector(
                       onTap: () => _goToDetails(context, court),
                       child: Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 8),
+                        padding: const EdgeInsets.symmetric(horizontal: 1),
                         child: SizeCourtListTile(
                           name: court.name,
                           category: court.category,

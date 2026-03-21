@@ -92,6 +92,16 @@ class SearchState {
 class SearchNotifier extends Notifier<SearchState> {
   static const _pageSize = 10;
 
+  // ── Per-category cache ────────────────────────────────────────────────────
+  // Keyed by category name (e.g. 'All', 'Football', 'Padel').
+  // Only populated when there is no active text search query — search results
+  // are dynamic so we never cache those.
+  final Map<String, List<Court>> _courtCache = {};
+  final Map<String, int> _pageCache = {};
+  final Map<String, bool> _hasMoreCache = {};
+
+  bool get _isTextSearch => state.query.isNotEmpty;
+
   @override
   SearchState build() {
     Future.microtask(() => fetchCourts());
@@ -101,6 +111,21 @@ class SearchNotifier extends Notifier<SearchState> {
   Future<void> fetchCourts({bool reset = false}) async {
     if (state.isLoading && !reset) return;
 
+    final category = state.category;
+
+    // ── Cache hit: restore instantly, no network call ─────────────────────
+    // Only applies when there is no active text search.
+    if (reset && !_isTextSearch && _courtCache.containsKey(category)) {
+      state = state.copyWith(
+        courts: _courtCache[category]!,
+        page: _pageCache[category]!,
+        hasMore: _hasMoreCache[category]!,
+        isLoading: false,
+      );
+      return;
+    }
+
+    // ── Cache miss or text search: fetch from API ─────────────────────────
     final pageToFetch = reset ? 0 : state.page;
     final existingCourts = reset ? <Court>[] : state.courts;
 
@@ -119,12 +144,24 @@ class SearchNotifier extends Notifier<SearchState> {
             pageSize: _pageSize,
           );
 
+      final allCourts = [...existingCourts, ...newCourts];
+      final nextPage = pageToFetch + 1;
+      final hasMore = newCourts.length >= _pageSize;
+
       state = state.copyWith(
-        courts: [...existingCourts, ...newCourts],
+        courts: allCourts,
         isLoading: false,
-        hasMore: newCourts.length >= _pageSize,
-        page: pageToFetch + 1,
+        hasMore: hasMore,
+        page: nextPage,
       );
+
+      // Store in cache — but only for pure category browsing, not text search.
+      // This means switching Football → Padel → Football costs zero extra calls.
+      if (!_isTextSearch) {
+        _courtCache[category] = allCourts;
+        _pageCache[category] = nextPage;
+        _hasMoreCache[category] = hasMore;
+      }
     } catch (_) {
       state = state.copyWith(isLoading: false);
     }
@@ -144,6 +181,14 @@ class SearchNotifier extends Notifier<SearchState> {
 
   void loadMore() {
     if (!state.isLoading && state.hasMore) fetchCourts();
+  }
+
+  /// Call this if you ever need to force a fresh fetch —
+  /// e.g. after a new court is added by admin.
+  void invalidateCache() {
+    _courtCache.clear();
+    _pageCache.clear();
+    _hasMoreCache.clear();
   }
 }
 
