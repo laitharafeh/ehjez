@@ -27,6 +27,14 @@ class HomeScreen extends ConsumerWidget {
     final football = ref.watch(footballCourtsProvider);
     final padel = ref.watch(padelCourtsProvider);
 
+    // Time-based greeting — computed once at build time
+    final hour = DateTime.now().hour;
+    final greeting = hour < 12
+        ? 'Good morning'
+        : hour < 17
+            ? 'Good afternoon'
+            : 'Good evening';
+
     return Scaffold(
       appBar: CustomAppBar(),
       body: SingleChildScrollView(
@@ -39,6 +47,15 @@ class HomeScreen extends ConsumerWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  Text(
+                    greeting,
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: Colors.grey[500],
+                      fontWeight: FontWeight.w400,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
                   const Text(
                     'Find a court',
                     style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
@@ -95,7 +112,7 @@ class HomeScreen extends ConsumerWidget {
             const Divider(color: Colors.grey, thickness: 0.5, height: 24),
 
             // ── Featured ──────────────────────────────────────────────────
-            const HomeText(text: 'Featured', icon: Icons.sports_basketball),
+            const HomeText(text: 'Featured', icon: Icons.star_rounded),
             SizedBox(
               height: 174,
               child: featured.when(
@@ -221,32 +238,32 @@ class _CategoryStrip extends StatelessWidget {
   static const _categories = [
     _CategoryItem(
       label: 'Football',
-      emoji: '⚽',
+      assetPath: 'assets/football_cat.png',
       color: Color(0xFFE8F5E9), // soft green
     ),
     _CategoryItem(
       label: 'Padel',
-      emoji: '🏓',
+      assetPath: 'assets/padel_cut.PNG',
       color: Color(0xFFE3F2FD), // soft blue
     ),
     _CategoryItem(
       label: 'Tennis',
-      emoji: '🎾',
+      assetPath: 'assets/tennis_ball.png',
       color: Color(0xFFFFF8E1), // soft amber
     ),
     _CategoryItem(
       label: 'Badminton',
-      emoji: '🏸',
+      assetPath: 'assets/badminton_ball.png',
       color: Color(0xFFFCE4EC), // soft pink
     ),
     _CategoryItem(
       label: 'Basketball',
-      emoji: '🏀',
+      assetPath: 'assets/basketball.png',
       color: Color(0xFFFBE9E7), // soft coral
     ),
     _CategoryItem(
       label: 'Volleyball',
-      emoji: '🏐',
+      assetPath: 'assets/volleyball.png',
       color: Color(0xFFEDE7F6), // soft purple
     ),
   ];
@@ -275,9 +292,11 @@ class _CategoryStrip extends StatelessWidget {
                     shape: BoxShape.circle,
                   ),
                   child: Center(
-                    child: Text(
-                      cat.emoji,
-                      style: const TextStyle(fontSize: 26),
+                    child: Image.asset(
+                      cat.assetPath,
+                      width: 30,
+                      height: 30,
+                      fit: BoxFit.contain,
                     ),
                   ),
                 ),
@@ -301,12 +320,12 @@ class _CategoryStrip extends StatelessWidget {
 
 class _CategoryItem {
   final String label;
-  final String emoji;
+  final String assetPath;
   final Color color;
 
   const _CategoryItem({
     required this.label,
-    required this.emoji,
+    required this.assetPath,
     required this.color,
   });
 }

@@ -27,6 +27,11 @@ class MyApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
         scaffoldBackgroundColor: const Color(0xFFFAF8F5),
+        appBarTheme: const AppBarTheme(
+          backgroundColor: Color(0xFFFAF8F5),
+          surfaceTintColor: Colors.transparent,
+          elevation: 0,
+        ),
       ),
       home: const AuthChecker(),
     );

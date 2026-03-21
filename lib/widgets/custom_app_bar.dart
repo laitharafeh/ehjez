@@ -14,6 +14,9 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
   @override
   Widget build(BuildContext context) {
     return AppBar(
+      backgroundColor: const Color(0xFFFAF8F5),
+      elevation: 0,
+      scrolledUnderElevation: 0,
       title: Text(
         'ehjez',
         style: GoogleFonts.grandstander(

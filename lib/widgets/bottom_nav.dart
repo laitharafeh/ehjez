@@ -54,19 +54,33 @@ class _BottomNavState extends ConsumerState<BottomNav> {
         index: _selectedIndex,
         children: _pages,
       ),
-      bottomNavigationBar: BottomNavigationBar(
-        iconSize: 22,
-        type: BottomNavigationBarType.fixed,
-        selectedItemColor: const Color(0xFF068631),
-        unselectedItemColor: Colors.grey,
-        currentIndex: _selectedIndex,
-        onTap: _onItemTapped,
-        items: const [
-          BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Home'),
-          BottomNavigationBarItem(icon: Icon(Icons.search), label: 'Search'),
-          BottomNavigationBarItem(
-              icon: Icon(Icons.calendar_today), label: 'Bookings'),
-        ],
+      bottomNavigationBar: Container(
+        decoration: const BoxDecoration(
+          color: Color(0xFFFAF8F5),
+          boxShadow: [
+            BoxShadow(
+              color: Color(0x26B0A090), // warm-tinted shadow, ~15% opacity
+              blurRadius: 12,
+              offset: Offset(0, -3),
+            ),
+          ],
+        ),
+        child: BottomNavigationBar(
+          backgroundColor: const Color(0xFFFAF8F5),
+          elevation: 0, // shadow comes from the Container, not Flutter's default
+          iconSize: 22,
+          type: BottomNavigationBarType.fixed,
+          selectedItemColor: const Color(0xFF068631),
+          unselectedItemColor: Colors.grey,
+          currentIndex: _selectedIndex,
+          onTap: _onItemTapped,
+          items: const [
+            BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Home'),
+            BottomNavigationBarItem(icon: Icon(Icons.search), label: 'Search'),
+            BottomNavigationBarItem(
+                icon: Icon(Icons.calendar_today), label: 'Bookings'),
+          ],
+        ),
       ),
     );
   }

@@ -142,29 +142,35 @@ class _BookingTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ListTile(
-      contentPadding:
-          const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      tileColor: Theme.of(context).cardColor,
-      leading: Icon(_icon, size: 32),
-      title: Text(
-        booking.courtName ?? 'Unknown Court',
-        style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+    return Material(
+      color: isCurrent
+          ? const Color(0xFFC8E6C9) // light green used in category buttons
+          : Theme.of(context).scaffoldBackgroundColor,
+      elevation: isCurrent ? 2 : 0,
+      borderRadius: BorderRadius.circular(16),
+      child: ListTile(
+        contentPadding:
+            const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        leading: Icon(_icon, size: 32),
+        title: Text(
+          booking.courtName ?? 'Unknown Court',
+          style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+        ),
+        subtitle: Text(
+            'Date: ${booking.date}\nStart: ${booking.startTime}, Duration: ${booking.duration}h'),
+        trailing: isCurrent
+            ? ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Theme.of(context).colorScheme.error,
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                ),
+                onPressed: onCancel,
+                child:
+                    const Text('Cancel', style: TextStyle(color: Colors.white)),
+              )
+            : null,
       ),
-      subtitle: Text(
-          'Date: ${booking.date}\nStart: ${booking.startTime}, Duration: ${booking.duration}h'),
-      trailing: isCurrent
-          ? ElevatedButton(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Theme.of(context).colorScheme.error,
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-              ),
-              onPressed: onCancel,
-              child:
-                  const Text('Cancel', style: TextStyle(color: Colors.white)),
-            )
-          : null,
     );
   }
 }
