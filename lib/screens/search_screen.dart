@@ -1,127 +1,76 @@
 import 'dart:async';
+import 'package:ehjez/models/court.dart';
+import 'package:ehjez/providers/providers.dart';
 import 'package:ehjez/screens/court_details_screen.dart';
 import 'package:ehjez/widgets/category_button.dart';
 import 'package:ehjez/widgets/court_list_tile.dart';
 import 'package:ehjez/widgets/custom_app_bar.dart';
 import 'package:flutter/material.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-class SearchScreen extends StatefulWidget {
-  final String selectedCategory;
-
-  const SearchScreen({super.key, required this.selectedCategory});
+class SearchScreen extends ConsumerStatefulWidget {
+  // No constructor arguments needed — category and query live in the provider.
+  const SearchScreen({super.key});
 
   @override
-  State<SearchScreen> createState() => _SearchScreenState();
+  ConsumerState<SearchScreen> createState() => _SearchScreenState();
 }
 
-class _SearchScreenState extends State<SearchScreen>
-    with AutomaticKeepAliveClientMixin<SearchScreen> {
-  @override
-  bool get wantKeepAlive => true;
-  final SupabaseClient supabase = Supabase.instance.client;
+class _SearchScreenState extends ConsumerState<SearchScreen> {
   final ScrollController _scrollController = ScrollController();
+  final TextEditingController _searchController = TextEditingController();
   Timer? _debounce;
 
   final List<String> categories = [
-    "All",
-    "Football",
-    "Padel",
-    "Basketball",
-    "Tennis",
-    "Badminton",
-    "Volleyball"
+    'All', 'Football', 'Padel', 'Basketball', 'Tennis', 'Badminton', 'Volleyball',
   ];
-
-  late String _selectedCategory;
-  String _searchQuery = "";
-  final List<Map<String, dynamic>> _courts = []; // List to store courts
-  bool _isLoading = false; // Loading state
-  bool _hasMore = true; // Whether more data is available
-  int _page = 0; // Current page
-  final int _pageSize = 10; // Number of items per page
 
   @override
   void initState() {
     super.initState();
-    _selectedCategory = widget.selectedCategory;
-
-    // Smooth initial load
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      _fetchCourts(); // Initial fetch after UI builds
-    });
-
-    // Scroll listener for pagination
-    _scrollController.addListener(() {
-      if (_scrollController.position.pixels ==
-              _scrollController.position.maxScrollExtent &&
-          !_isLoading &&
-          _hasMore) {
-        _fetchCourts();
-      }
-    });
+    _scrollController.addListener(_onScroll);
   }
 
-  /// Fetches courts with pagination
-  Future<void> _fetchCourts({bool reset = false}) async {
-    if (_isLoading) return; // Prevent multiple fetches
-    setState(() => _isLoading = true);
-
-    if (reset) {
-      _courts.clear(); // Clear list on reset
-      _page = 0;
-      _hasMore = true;
-    }
-
-    try {
-      var query = supabase.from('courts').select();
-      if (_selectedCategory != "All") {
-        query = query.eq('category', _selectedCategory);
-      }
-      if (_searchQuery.isNotEmpty) {
-        query = query.ilike('name', '%$_searchQuery%');
-      }
-
-      // Fetch a range of courts based on the current page
-      final response =
-          await query.range(_page * _pageSize, (_page + 1) * _pageSize - 1);
-
-      setState(() {
-        _courts.addAll(response); // Append new courts
-        _page++; // Increment page
-        if (response.length < _pageSize) {
-          _hasMore = false; // No more data to fetch
-        }
-      });
-    } catch (error) {
-      debugPrint("Error fetching courts: $error");
-    } finally {
-      setState(() => _isLoading = false);
+  void _onScroll() {
+    final pos = _scrollController.position;
+    if (pos.pixels >= pos.maxScrollExtent - 200) {
+      ref.read(searchProvider.notifier).loadMore();
     }
   }
 
-  /// Handles category selection
-  void onCategorySelected(String category) {
-    setState(() {
-      _selectedCategory = category;
-      _fetchCourts(reset: true); // Reset and fetch
+  void _onSearchChanged(String query) {
+    _debounce?.cancel();
+    _debounce = Timer(const Duration(milliseconds: 400), () {
+      ref.read(searchProvider.notifier).setQuery(query.toLowerCase());
     });
   }
 
-  /// Filters search results with debounce
-  void _filterSearchResults(String query) {
-    if (_debounce?.isActive ?? false) _debounce!.cancel();
-    _debounce = Timer(const Duration(milliseconds: 500), () {
-      setState(() {
-        _searchQuery = query.toLowerCase();
-        _fetchCourts(reset: true); // Reset and fetch
-      });
-    });
+  void _onCategorySelected(String category) {
+    ref.read(searchProvider.notifier).setCategory(category);
+  }
+
+  void _goToDetails(BuildContext context, Court court) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => CourtDetailsScreen(court: court)),
+    );
+  }
+
+  @override
+  void dispose() {
+    _debounce?.cancel();
+    _scrollController.dispose();
+    _searchController.dispose();
+    super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    super.build(context);
+    final searchState = ref.watch(searchProvider);
+
+    // Sync the text field if the category changed externally (e.g. home screen tap).
+    // We only need to sync the search text — category is reflected in the buttons.
+
     return Scaffold(
       appBar: CustomAppBar(),
       body: Column(
@@ -129,11 +78,12 @@ class _SearchScreenState extends State<SearchScreen>
           Padding(
             padding: const EdgeInsets.all(8.0),
             child: TextField(
-              onChanged: _filterSearchResults,
+              controller: _searchController,
+              onChanged: _onSearchChanged,
               decoration: InputDecoration(
                 isDense: true,
                 contentPadding: const EdgeInsets.symmetric(vertical: 8),
-                hintText: "Search...",
+                hintText: 'Search...',
                 prefixIcon: const Icon(Icons.search),
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(8.0),
@@ -146,50 +96,36 @@ class _SearchScreenState extends State<SearchScreen>
           ),
           CategoryButtons(
             categories: categories,
-            selectedCategory: _selectedCategory,
-            onCategorySelected: onCategorySelected,
+            selectedCategory: searchState.category,
+            onCategorySelected: _onCategorySelected,
           ),
           const SizedBox(height: 3),
           Expanded(
-            child: _courts.isEmpty && !_isLoading
-                ? const Center(child: Text("No courts found"))
+            child: searchState.courts.isEmpty && !searchState.isLoading
+                ? const Center(child: Text('No courts found'))
                 : ListView.builder(
                     controller: _scrollController,
-                    itemCount: _courts.length +
-                        (_hasMore ? 1 : 0), // Add 1 for loading indicator
+                    itemCount: searchState.courts.length +
+                        (searchState.hasMore ? 1 : 0),
                     itemBuilder: (context, index) {
-                      if (index == _courts.length) {
-                        return const Center(child: CircularProgressIndicator());
+                      if (index == searchState.courts.length) {
+                        return const Center(
+                          child: Padding(
+                            padding: EdgeInsets.all(16),
+                            child: CircularProgressIndicator(),
+                          ),
+                        );
                       }
-                      final court = _courts[index];
+                      final court = searchState.courts[index];
                       return GestureDetector(
-                        onTap: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => CourtDetailsScreen(
-                                id: court['id'],
-                                name: court['name'] ?? "Unknown",
-                                category: court['category'] ?? "N/A",
-                                location: court['location'] ?? "Not specified",
-                                phone: court['phone'] ?? "No contact",
-                                //size: court['size'] ?? "N/A",
-                                // price: court['price'] ?? "N/A",
-                                // price2: court['price2'] ?? 0,
-                                imageUrl: court['image_url'] ?? "",
-                                image2Url: court['image2_url'] ?? "",
-                                image3Url: court['image3_url'] ?? "",
-                              ),
-                            ),
-                          );
-                        },
+                        onTap: () => _goToDetails(context, court),
                         child: CourtListTile(
-                          name: court['name'] ?? "Unknown",
-                          category: court['category'] ?? "N/A",
-                          location: court['location'] ?? "Not specified",
-                          phone: court['phone'] ?? "No contact",
-                          size: court['size'] ?? "N/A",
-                          imageUrl: court['image_url'] ?? "",
+                          name: court.name,
+                          category: court.category,
+                          location: court.location,
+                          phone: court.phone,
+                          size: '',
+                          imageUrl: court.imageUrl,
                         ),
                       );
                     },
@@ -198,12 +134,5 @@ class _SearchScreenState extends State<SearchScreen>
         ],
       ),
     );
-  }
-
-  @override
-  void dispose() {
-    _debounce?.cancel();
-    _scrollController.dispose();
-    super.dispose();
   }
 }

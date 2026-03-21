@@ -1,9 +1,10 @@
 import 'package:ehjez/constants.dart';
+import 'package:ehjez/providers/providers.dart';
 import 'package:flutter/material.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:table_calendar/table_calendar.dart';
 
-class SportsCourtCalendar extends StatefulWidget {
+class SportsCourtCalendar extends ConsumerStatefulWidget {
   final String courtId;
   final String name;
   final void Function(DateTime, int, String)? onTimeSlotSelected;
@@ -18,10 +19,11 @@ class SportsCourtCalendar extends StatefulWidget {
   });
 
   @override
-  State<SportsCourtCalendar> createState() => _SportsCourtCalendarState();
+  ConsumerState<SportsCourtCalendar> createState() =>
+      _SportsCourtCalendarState();
 }
 
-class _SportsCourtCalendarState extends State<SportsCourtCalendar> {
+class _SportsCourtCalendarState extends ConsumerState<SportsCourtCalendar> {
   DateTime? _selectedSlotTime;
   late DateTime _focusedDay;
   DateTime? _selectedDay;
@@ -45,33 +47,27 @@ class _SportsCourtCalendarState extends State<SportsCourtCalendar> {
 
   Future<void> _fetchCourtData() async {
     setState(() => _isLoading = true);
-
     try {
-      // Fetch court timing information
-      final courtResponse = await Supabase.instance.client
-          .from('courts')
-          .select('start_time, end_time')
-          .eq('id', widget.courtId)
-          .single();
+      final repo = ref.read(courtRepositoryProvider);
+      final reservationRepo = ref.read(reservationRepositoryProvider);
 
-      // Fetch size information from the sizes table table
-      final sizesResponse = await Supabase.instance.client
-          .from('courts_size_price')
-          .select('size, number_of_fields')
-          .eq('court_id', widget.courtId);
+      // Fetch court timing + size data in parallel
+      final results = await Future.wait([
+        repo.fetchCourtById(widget.courtId),
+        repo.fetchCourtSizePrices(widget.courtId),
+      ]);
 
-      // Process court timings
-      if (courtResponse.isNotEmpty) {
+      final court = results[0] as dynamic;
+      final sizes = results[1] as dynamic;
+
+      // Process timings
+      final startTimeStr = court.startTime as String?;
+      final endTimeStr = court.endTime as String?;
+      if (startTimeStr != null && endTimeStr != null) {
         final now = DateTime.now();
-        String endTimeStr = courtResponse['end_time'] as String;
-
-        if (endTimeStr == "23:59:59") {
-          _isEndTimeSpecial = true;
-        }
-
-        int startHour = int.parse(courtResponse['start_time'].split(':')[0]);
-        int endHour = int.parse(endTimeStr.split(':')[0]);
-
+        _isEndTimeSpecial = endTimeStr == '23:59:59';
+        final startHour = int.parse(startTimeStr.split(':')[0]);
+        final endHour = int.parse(endTimeStr.split(':')[0]);
         _courtStartTime = DateTime(now.year, now.month, now.day, startHour);
         _courtEndTime = endHour >= startHour
             ? DateTime(now.year, now.month, now.day, endHour)
@@ -80,13 +76,9 @@ class _SportsCourtCalendarState extends State<SportsCourtCalendar> {
 
       // Process sizes
       _courtSizes.clear();
-      if (sizesResponse.isNotEmpty) {
-        for (var sizeRecord in sizesResponse) {
-          final size = sizeRecord['size'] as String?;
-          final number = sizeRecord['number_of_fields'] as int?;
-          if (size != null && size.isNotEmpty && number != null && number > 0) {
-            _courtSizes[size] = number;
-          }
+      for (final sp in sizes) {
+        if (sp.size.isNotEmpty && sp.numberOfFields > 0) {
+          _courtSizes[sp.size] = sp.numberOfFields;
         }
       }
 
@@ -101,11 +93,11 @@ class _SportsCourtCalendarState extends State<SportsCourtCalendar> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Error loading court data: $e')),
         );
+        _courtStartTime = DateTime.now().copyWith(hour: 8, minute: 0);
+        _courtEndTime = DateTime.now()
+            .copyWith(hour: 2, minute: 0)
+            .add(const Duration(days: 1));
       }
-      _courtStartTime = DateTime.now().copyWith(hour: 8, minute: 0);
-      _courtEndTime = DateTime.now()
-          .copyWith(hour: 2, minute: 0)
-          .add(const Duration(days: 1));
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
@@ -113,33 +105,27 @@ class _SportsCourtCalendarState extends State<SportsCourtCalendar> {
 
   Future<void> _fetchReservations() async {
     if (_selectedSize == null) return;
-
     setState(() => _isLoading = true);
-
     try {
-      final response = await Supabase.instance.client
-          .from('reservations')
-          .select()
-          .eq('court_id', widget.courtId)
-          .eq('size', _selectedSize!)
-          .gte('date', DateTime.now().toIso8601String().split('T')[0])
-          .order('start_time', ascending: true);
+      final raw = await ref
+          .read(reservationRepositoryProvider)
+          .fetchReservationsForCourt(
+            courtId: widget.courtId,
+            size: _selectedSize!,
+            fromDate: DateTime.now().toIso8601String().split('T')[0],
+          );
 
       _reservations.clear();
-      for (var reservation in response as List<dynamic>) {
-        final date = DateTime.parse(reservation['date']);
-        final startTimeStr = reservation['start_time'] as String;
-        final startHour = int.parse(startTimeStr.split(':')[0]);
-        final startMinute = int.parse(startTimeStr.split(':')[1]);
-        final startTime =
-            DateTime(date.year, date.month, date.day, startHour, startMinute);
-        final dateKey = DateTime(date.year, date.month, date.day);
-        _reservations[dateKey] ??= [];
-        _reservations[dateKey]!.add({
+      for (final r in raw) {
+        final date = DateTime.parse(r['date']);
+        final parts = (r['start_time'] as String).split(':');
+        final startTime = DateTime(date.year, date.month, date.day,
+            int.parse(parts[0]), int.parse(parts[1]));
+        final key = DateTime(date.year, date.month, date.day);
+        _reservations[key] ??= [];
+        _reservations[key]!.add({
           'start_time': startTime,
-          'duration': reservation['duration'],
-          'user_id': reservation['user_id'],
-          'size': reservation['size'],
+          'duration': r['duration'],
         });
       }
     } catch (e) {
@@ -153,118 +139,71 @@ class _SportsCourtCalendarState extends State<SportsCourtCalendar> {
     }
   }
 
-  int _getMaxConcurrency(DateTime slotStart, DateTime slotEnd,
-      List<Map<String, dynamic>> reservations) {
-    List<Map<String, dynamic>> overlapping = reservations.where((r) {
-      DateTime rStart = r['start_time'];
-      DateTime rEnd = rStart.add(Duration(hours: r['duration']));
-      return rStart.isBefore(slotEnd) && rEnd.isAfter(slotStart);
-    }).toList();
-
-    List<Map<String, dynamic>> events = [];
-    for (var r in overlapping) {
-      DateTime rStart = r['start_time'];
-      DateTime rEnd = rStart.add(Duration(hours: r['duration']));
-      DateTime effectiveStart = rStart.isAfter(slotStart) ? rStart : slotStart;
-      DateTime effectiveEnd = rEnd.isBefore(slotEnd) ? rEnd : slotEnd;
-      events.add({'time': effectiveStart, 'type': 'start'});
-      events.add({'time': effectiveEnd, 'type': 'end'});
-    }
-
-    events.sort((a, b) {
-      int cmp = a['time'].compareTo(b['time']);
-      if (cmp == 0) {
-        if (a['type'] == 'end' && b['type'] == 'start') return -1;
-        if (a['type'] == 'start' && b['type'] == 'end') return 1;
-      }
-      return cmp;
-    });
-
-    int counter = 0;
-    int maxCounter = 0;
-    for (var event in events) {
-      if (event['type'] == 'start') {
-        counter++;
-        maxCounter = counter > maxCounter ? counter : maxCounter;
-      } else {
-        counter--;
-      }
-    }
-    return maxCounter;
-  }
-
   List<Map<String, dynamic>> _getAvailableSlots(DateTime day) {
     if (_courtStartTime == null ||
         _courtEndTime == null ||
         _selectedSize == null ||
-        _numberOfFields == null) {
-      return [];
-    }
+        _numberOfFields == null) return [];
 
     final now = DateTime.now();
     final isToday =
         day.year == now.year && day.month == now.month && day.day == now.day;
 
-    final dayStart = DateTime(
-      day.year,
-      day.month,
-      day.day,
-      _courtStartTime!.hour,
-      _courtStartTime!.minute,
-    );
+    final dayStart = DateTime(day.year, day.month, day.day,
+        _courtStartTime!.hour, _courtStartTime!.minute);
 
-    DateTime dayEnd;
-    if (_isEndTimeSpecial) {
-      dayEnd = DateTime(day.year, day.month, day.day + 1, 0, 0);
-    } else {
-      dayEnd = _courtEndTime!.isAfter(_courtStartTime!)
-          ? DateTime(day.year, day.month, day.day, _courtEndTime!.hour,
-              _courtEndTime!.minute)
-          : DateTime(day.year, day.month, day.day + 1, _courtEndTime!.hour,
-              _courtEndTime!.minute);
-    }
+    final dayEnd = _isEndTimeSpecial
+        ? DateTime(day.year, day.month, day.day + 1, 0, 0)
+        : (_courtEndTime!.isAfter(_courtStartTime!)
+            ? DateTime(day.year, day.month, day.day, _courtEndTime!.hour,
+                _courtEndTime!.minute)
+            : DateTime(day.year, day.month, day.day + 1, _courtEndTime!.hour,
+                _courtEndTime!.minute));
 
     final reservedTimes =
         _reservations[DateTime(day.year, day.month, day.day)] ?? [];
 
-    List<Map<String, dynamic>> slots = [];
-    DateTime currentTime = dayStart;
+    // ── Build a booking-count map in a single O(n) pass ──────────────────────
+    // Key: hour of day (0–23), Value: number of active bookings during that hour
+    final Map<int, int> bookingsPerHour = {};
+    for (final r in reservedTimes) {
+      final rStart = r['start_time'] as DateTime;
+      final rDuration = r['duration'] as int;
+      for (int h = 0; h < rDuration; h++) {
+        final hour = (rStart.hour + h) % 24;
+        bookingsPerHour[hour] = (bookingsPerHour[hour] ?? 0) + 1;
+      }
+    }
+    // ─────────────────────────────────────────────────────────────────────────
+
+    final slots = <Map<String, dynamic>>[];
+    var currentTime = dayStart;
 
     while (true) {
-      // if it's today and this slot has already started, skip it
       if (isToday && currentTime.isBefore(now)) {
         currentTime = currentTime.add(const Duration(hours: 1));
         if (currentTime.isAfter(dayEnd)) break;
         continue;
       }
-
-      final slotEnd = currentTime.add(Duration(hours: _selectedDuration));
-      if (_selectedDuration == 2 && slotEnd.isAfter(dayEnd)) break;
       if (currentTime.isAtSameMomentAs(dayEnd) || currentTime.isAfter(dayEnd)) {
         break;
       }
 
-      bool isWithinRange;
-      if (_isEndTimeSpecial &&
-          _selectedDuration == 1 &&
-          slotEnd.hour == 0 &&
-          slotEnd.minute == 0) {
-        isWithinRange =
-            _getMaxConcurrency(currentTime, slotEnd, reservedTimes) <
-                _numberOfFields!;
-      } else if (slotEnd.isAfter(dayEnd)) {
-        isWithinRange = false;
-      } else {
-        isWithinRange =
-            _getMaxConcurrency(currentTime, slotEnd, reservedTimes) <
-                _numberOfFields!;
+      final slotEnd = currentTime.add(Duration(hours: _selectedDuration));
+      if (_selectedDuration == 2 && slotEnd.isAfter(dayEnd)) break;
+
+      // ── O(duration) lookup — max 2 iterations ────────────────────────────
+      bool isAvailable = true;
+      for (int h = 0; h < _selectedDuration; h++) {
+        final hour = (currentTime.hour + h) % 24;
+        if ((bookingsPerHour[hour] ?? 0) >= _numberOfFields!) {
+          isAvailable = false;
+          break;
+        }
       }
+      // ─────────────────────────────────────────────────────────────────────
 
-      slots.add({
-        'time': currentTime,
-        'isAvailable': isWithinRange,
-      });
-
+      slots.add({'time': currentTime, 'isAvailable': isAvailable});
       currentTime = currentTime.add(const Duration(hours: 1));
       if (currentTime.isAfter(dayEnd)) break;
     }
@@ -274,12 +213,10 @@ class _SportsCourtCalendarState extends State<SportsCourtCalendar> {
 
   String _formatHour(DateTime time) {
     int hour = time.hour;
-    String period = hour >= 12 ? 'PM' : 'AM';
-    if (hour == 0) {
+    final period = hour >= 12 ? 'PM' : 'AM';
+    if (hour == 0)
       hour = 12;
-    } else if (hour > 12) {
-      hour -= 12;
-    }
+    else if (hour > 12) hour -= 12;
     return '$hour:00 $period';
   }
 
@@ -292,19 +229,18 @@ class _SportsCourtCalendarState extends State<SportsCourtCalendar> {
       children: [
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16),
-          child: Text(
-            'Sizes',
-            style: Theme.of(context).appBarTheme.titleTextStyle ??
-                const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-          ),
+          child: Text('Sizes',
+              style: Theme.of(context).appBarTheme.titleTextStyle ??
+                  const TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
         ),
-        if (_courtSizes.isNotEmpty) ...[
+        if (_courtSizes.isNotEmpty)
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             child: Wrap(
-              spacing: 8.0,
-              runSpacing: 8.0,
+              spacing: 8,
+              runSpacing: 8,
               children: _courtSizes.keys.map((size) {
+                final isSelected = _selectedSize == size;
                 return GestureDetector(
                   onTap: () {
                     setState(() {
@@ -315,25 +251,20 @@ class _SportsCourtCalendarState extends State<SportsCourtCalendar> {
                   },
                   child: Card(
                     elevation: 4,
-                    color: _selectedSize == size ? ehjezGreen : Colors.white,
+                    color: isSelected ? ehjezGreen : Colors.white,
                     child: Padding(
                       padding: const EdgeInsets.symmetric(
                           horizontal: 16, vertical: 8),
-                      child: Text(
-                        size,
-                        style: TextStyle(
-                          color: _selectedSize == size
-                              ? Colors.white
-                              : Colors.black,
-                        ),
-                      ),
+                      child: Text(size,
+                          style: TextStyle(
+                              color: isSelected ? Colors.white : Colors.black)),
                     ),
                   ),
                 );
               }).toList(),
             ),
-          ),
-        ] else
+          )
+        else
           const Padding(
             padding: EdgeInsets.symmetric(horizontal: 16),
             child: Text('No sizes available for this court'),
@@ -350,15 +281,12 @@ class _SportsCourtCalendarState extends State<SportsCourtCalendar> {
               _focusedDay = focusedDay;
               _selectedSlotTime = null;
             });
-            if (widget.onSelectionReset != null) {
-              widget.onSelectionReset!();
-            }
+            widget.onSelectionReset?.call();
           },
           eventLoader: (day) =>
               _reservations[DateTime(day.year, day.month, day.day)] ?? [],
           calendarStyle: const CalendarStyle(
             markersMaxCount: 0,
-            markersAlignment: Alignment.bottomRight,
             selectedDecoration:
                 BoxDecoration(color: Color(0xFF068631), shape: BoxShape.circle),
           ),
@@ -378,19 +306,17 @@ class _SportsCourtCalendarState extends State<SportsCourtCalendar> {
               Center(
                 child: ToggleButtons(
                   isSelected: [_selectedDuration == 1, _selectedDuration == 2],
-                  onPressed: (index) {
+                  onPressed: (i) {
                     setState(() {
-                      _selectedDuration = index + 1;
+                      _selectedDuration = i + 1;
                       _selectedSlotTime = null;
                     });
-                    if (widget.onSelectionReset != null) {
-                      widget.onSelectionReset!();
-                    }
+                    widget.onSelectionReset?.call();
                   },
                   borderRadius: BorderRadius.circular(8),
                   selectedColor: Colors.white,
                   color: Colors.black,
-                  fillColor: const Color(0xFF068631),
+                  fillColor: ehjezGreen,
                   children: const [
                     Padding(
                       padding:
@@ -424,15 +350,10 @@ class _SportsCourtCalendarState extends State<SportsCourtCalendar> {
             final isSelected = _selectedSlotTime == time;
             return GestureDetector(
               onTap: () {
-                if (isAvailable) {
-                  setState(() {
-                    _selectedSlotTime = time;
-                  });
-                  if (widget.onTimeSlotSelected != null) {
-                    widget.onTimeSlotSelected!(
-                        time, _selectedDuration, _selectedSize!);
-                  }
-                }
+                if (!isAvailable) return;
+                setState(() => _selectedSlotTime = time);
+                widget.onTimeSlotSelected
+                    ?.call(time, _selectedDuration, _selectedSize!);
               },
               child: Container(
                 margin: const EdgeInsets.symmetric(vertical: 4, horizontal: 16),
@@ -451,9 +372,11 @@ class _SportsCourtCalendarState extends State<SportsCourtCalendar> {
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text('${_formatHour(time)} - ${_formatHour(endTime)}',
-                        style: const TextStyle(
-                            fontSize: 16, fontWeight: FontWeight.bold)),
+                    Text(
+                      '${_formatHour(time)} - ${_formatHour(endTime)}',
+                      style: const TextStyle(
+                          fontSize: 16, fontWeight: FontWeight.bold),
+                    ),
                     Text(
                       isAvailable ? 'Available' : 'Reserved',
                       style: TextStyle(

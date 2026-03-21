@@ -1,58 +1,59 @@
+import 'package:ehjez/providers/providers.dart';
+import 'package:ehjez/screens/bookings_screen.dart';
+import 'package:ehjez/screens/home_screen.dart';
+import 'package:ehjez/screens/search_screen.dart';
 import 'package:flutter/material.dart';
-import '../screens/home_screen.dart';
-import '../screens/search_screen.dart';
-import '../screens/bookings_screen.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-class BottomNav extends StatefulWidget {
+class BottomNav extends ConsumerStatefulWidget {
   const BottomNav({super.key});
 
   @override
-  State<BottomNav> createState() => _BottomNavState();
+  ConsumerState<BottomNav> createState() => _BottomNavState();
 }
 
-class _BottomNavState extends State<BottomNav> {
+class _BottomNavState extends ConsumerState<BottomNav> {
   int _selectedIndex = 0;
 
-  final List<Widget> _pages = [];
+  // Pages are created once and never recreated.
+  // IndexedStack keeps them all alive in the widget tree so scroll
+  // positions, loaded data, and UI state are all preserved.
+  late final List<Widget> _pages;
 
   @override
   void initState() {
     super.initState();
-    _pages.addAll([
-      HomeScreen(onGoToSearch: _goToSearchScreen), // Pass the callback
-      const SearchScreen(selectedCategory: 'All'),
+    _pages = [
+      HomeScreen(onGoToSearch: _navigateToSearchWithCategory),
+      const SearchScreen(),
       const BookingsScreen(),
-      // ProfileScreen(),
-    ]);
+    ];
   }
 
   void _onItemTapped(int index) {
-    if (index == 1) {
-      // Reset SearchScreen to 'All' when navigating via bottom nav
-      setState(() {
-        _pages[1] = const SearchScreen(selectedCategory: 'All');
-      });
+    // When the user taps the Search tab directly, reset category to 'All'.
+    if (index == 1 && _selectedIndex != 1) {
+      ref.read(searchProvider.notifier).setCategory('All');
     }
-    setState(() {
-      _selectedIndex = index;
-    });
+    setState(() => _selectedIndex = index);
   }
 
-  // Function to navigate to the SearchScreen
-  void _goToSearchScreen(String category) {
-    _onItemTapped(1); // Navigate to the Search Screen (index 1)
-    // Pass the category to the SearchScreen
-    setState(() {
-      _pages[1] = SearchScreen(
-          selectedCategory:
-              category); // Update the SearchScreen with the new category
-    });
+  // Called by HomeScreen category buttons.
+  // Updates the search provider (so SearchScreen reacts) then switches tabs.
+  void _navigateToSearchWithCategory(String category) {
+    ref.read(searchProvider.notifier).setCategory(category);
+    setState(() => _selectedIndex = 1);
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: _pages[_selectedIndex],
+      // IndexedStack renders all children but shows only the selected one.
+      // This means screens are never destroyed — no re-fetching on tab switch.
+      body: IndexedStack(
+        index: _selectedIndex,
+        children: _pages,
+      ),
       bottomNavigationBar: BottomNavigationBar(
         iconSize: 22,
         type: BottomNavigationBarType.fixed,
@@ -65,7 +66,6 @@ class _BottomNavState extends State<BottomNav> {
           BottomNavigationBarItem(icon: Icon(Icons.search), label: 'Search'),
           BottomNavigationBarItem(
               icon: Icon(Icons.calendar_today), label: 'Bookings'),
-          // BottomNavigationBarItem(icon: Icon(Icons.person), label: 'Profile'),
         ],
       ),
     );
