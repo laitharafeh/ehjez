@@ -1,6 +1,7 @@
 import 'package:ehjez/constants.dart';
 import 'package:ehjez/models/court.dart';
 import 'package:ehjez/providers/providers.dart';
+import 'package:ehjez/screens/auth/login_check_screen.dart';
 import 'package:ehjez/widgets/image_slider.dart';
 import 'package:ehjez/widgets/sports_court_calendar.dart';
 import 'package:flutter/material.dart';
@@ -291,6 +292,19 @@ class _CourtDetailsScreenState extends ConsumerState<CourtDetailsScreen> {
               ),
               onPressed: _selectedTimeSlot != null
                   ? () async {
+                      // ── Guest guard ───────────────────────────────────
+                      // If not logged in, send user to login first.
+                      final userId = ref.read(currentUserIdProvider);
+                      if (userId == null) {
+                        if (!context.mounted) return;
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                              builder: (_) => LoginCheckScreen()),
+                        );
+                        return;
+                      }
+
                       final confirm = await showDialog<bool>(
                         context: context,
                         builder: (_) => AlertDialog(

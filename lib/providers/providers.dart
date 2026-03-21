@@ -21,10 +21,22 @@ final reservationRepositoryProvider = Provider<ReservationRepository>(
 );
 
 // ─── Auth ─────────────────────────────────────────────────────────────────────
+//
+// StreamProvider listens to Supabase's auth state stream.
+// Any time the user logs in, logs out, or taps "Later", this emits a new
+// value — and every provider watching it (userReservationsProvider etc.)
+// automatically re-evaluates. This is why bookings disappear on logout.
 
-final currentUserIdProvider = Provider<String?>(
-  (_) => Supabase.instance.client.auth.currentUser?.id,
-);
+final authStateProvider = StreamProvider<AuthState>((ref) {
+  return Supabase.instance.client.auth.onAuthStateChange;
+});
+
+/// Derives the current user ID from the live auth stream.
+/// Returns null when logged out — StreamProvider ensures this is reactive.
+final currentUserIdProvider = Provider<String?>((ref) {
+  final authState = ref.watch(authStateProvider);
+  return authState.whenData((state) => state.session?.user.id).value;
+});
 
 // ─── Courts (cached) ──────────────────────────────────────────────────────────
 //

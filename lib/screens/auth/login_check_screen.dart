@@ -1,4 +1,5 @@
 import 'package:ehjez/screens/auth/otp_screen.dart';
+import 'package:ehjez/widgets/bottom_nav.dart';
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -99,7 +100,27 @@ class LoginCheckScreen extends StatelessWidget {
                     ),
                     child: const Text("Confirm",
                         style: TextStyle(color: Colors.white)),
-                  )
+                  ),
+                  const SizedBox(height: 16),
+                  GestureDetector(
+                    onTap: () {
+                      Navigator.pushAndRemoveUntil(
+                        context,
+                        MaterialPageRoute(
+                            builder: (_) => const BottomNav()),
+                        (_) => false,
+                      );
+                    },
+                    child: const Text(
+                      'Later',
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: Color(0xFF555555),
+                        decoration: TextDecoration.underline,
+                        decorationColor: Color(0xFF555555),
+                      ),
+                    ),
+                  ),
                 ],
               ),
             ),
