@@ -10,6 +10,9 @@ class Court {
   final bool featured;
   final String? startTime;
   final String? endTime;
+  // Working days as a list of DateTime.weekday integers (1=Mon … 7=Sun).
+  // Defaults to all 7 days so existing courts are unaffected.
+  final List<int> workingDays;
 
   const Court({
     required this.id,
@@ -23,9 +26,16 @@ class Court {
     this.featured = false,
     this.startTime,
     this.endTime,
+    this.workingDays = const [1, 2, 3, 4, 5, 6, 7],
   });
 
   factory Court.fromMap(Map<String, dynamic> map) {
+    // Supabase returns integer arrays as List<dynamic> — cast safely.
+    final rawDays = map['working_days'];
+    final workingDays = rawDays != null
+        ? (rawDays as List<dynamic>).map((d) => d as int).toList()
+        : [1, 2, 3, 4, 5, 6, 7];
+
     return Court(
       id: map['id'] as String,
       name: map['name'] as String? ?? '',
@@ -38,6 +48,7 @@ class Court {
       featured: map['featured'] as bool? ?? false,
       startTime: map['start_time'] as String?,
       endTime: map['end_time'] as String?,
+      workingDays: workingDays,
     );
   }
 

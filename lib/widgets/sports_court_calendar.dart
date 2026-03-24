@@ -36,6 +36,8 @@ class _SportsCourtCalendarState extends ConsumerState<SportsCourtCalendar> {
   final Map<String, int> _courtSizes = {};
   String? _selectedSize;
   int? _numberOfFields;
+  // Working days — populated from DB. Defaults to all days until loaded.
+  List<int> _workingDays = [1, 2, 3, 4, 5, 6, 7];
 
   @override
   void initState() {
@@ -72,6 +74,25 @@ class _SportsCourtCalendarState extends ConsumerState<SportsCourtCalendar> {
         _courtEndTime = endHour >= startHour
             ? DateTime(now.year, now.month, now.day, endHour)
             : DateTime(now.year, now.month, now.day + 1, endHour);
+      }
+
+      // Working days — use court value, fall back to all days
+      _workingDays = court.workingDays.isNotEmpty
+          ? court.workingDays
+          : [1, 2, 3, 4, 5, 6, 7];
+
+      // If today is a closed day, advance _selectedDay to the next open day
+      // so the calendar doesn't open on a greyed-out date.
+      if (!_workingDays.contains(_selectedDay?.weekday)) {
+        DateTime candidate = _selectedDay ?? DateTime.now();
+        for (int i = 1; i <= 7; i++) {
+          candidate = candidate.add(const Duration(days: 1));
+          if (_workingDays.contains(candidate.weekday)) {
+            _selectedDay = candidate;
+            _focusedDay = candidate;
+            break;
+          }
+        }
       }
 
       // Process sizes
@@ -275,6 +296,8 @@ class _SportsCourtCalendarState extends ConsumerState<SportsCourtCalendar> {
           lastDay: DateTime.now().add(const Duration(days: 30)),
           focusedDay: _focusedDay,
           selectedDayPredicate: (day) => isSameDay(_selectedDay, day),
+          // Disable days the facility doesn't work — greyed out, not tappable
+          enabledDayPredicate: (day) => _workingDays.contains(day.weekday),
           onDaySelected: (selectedDay, focusedDay) {
             setState(() {
               _selectedDay = selectedDay;
@@ -285,10 +308,13 @@ class _SportsCourtCalendarState extends ConsumerState<SportsCourtCalendar> {
           },
           eventLoader: (day) =>
               _reservations[DateTime(day.year, day.month, day.day)] ?? [],
-          calendarStyle: const CalendarStyle(
+          calendarStyle: CalendarStyle(
             markersMaxCount: 0,
-            selectedDecoration:
-                BoxDecoration(color: Color(0xFF068631), shape: BoxShape.circle),
+            selectedDecoration: const BoxDecoration(
+                color: Color(0xFF068631), shape: BoxShape.circle),
+            // Closed days are visually muted so users understand why
+            disabledTextStyle:
+                TextStyle(color: Colors.grey[400], fontSize: 14),
           ),
           availableCalendarFormats: const {CalendarFormat.month: 'Month'},
           calendarFormat: CalendarFormat.month,
