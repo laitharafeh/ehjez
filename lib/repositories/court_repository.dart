@@ -67,4 +67,22 @@ class CourtRepository {
         .single();
     return Court.fromMap(response);
   }
+
+  /// Returns a set of dates (normalised to midnight) that are vacation/closed
+  /// days for the given court, from today onward.
+  Future<Set<DateTime>> fetchVacationDays(String courtId) async {
+    final today = DateTime.now().toIso8601String().split('T')[0];
+    final response = await _supabase
+        .from('court_vacation_days')
+        .select('vacation_date')
+        .eq('court_id', courtId)
+        .gte('vacation_date', today);
+
+    return (response as List)
+        .map((r) {
+          final d = DateTime.parse(r['vacation_date'] as String);
+          return DateTime(d.year, d.month, d.day);
+        })
+        .toSet();
+  }
 }

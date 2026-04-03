@@ -39,6 +39,7 @@ class ReservationRepository {
 
   Future<void> createReservation({
     required String userId,
+    required String phone,
     required String courtId,
     required String date,
     required String startTime,
@@ -49,6 +50,7 @@ class ReservationRepository {
   }) async {
     await _supabase.from('reservations').insert({
       'user_id': userId,
+      'phone': phone,
       'court_id': courtId,
       'date': date,
       'start_time': startTime,
@@ -95,8 +97,8 @@ class ReservationRepository {
         final h = int.parse(r['start_time'].split(':')[0]);
         final m = int.parse(r['start_time'].split(':')[1]);
         return {
-          'start_time': DateTime(selectedTime.year, selectedTime.month,
-              selectedTime.day, h, m),
+          'start_time': DateTime(
+              selectedTime.year, selectedTime.month, selectedTime.day, h, m),
           'duration': r['duration'],
         };
       }).toList();

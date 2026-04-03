@@ -6,6 +6,7 @@ import 'package:ehjez/widgets/image_slider.dart';
 import 'package:ehjez/widgets/sports_court_calendar.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -14,7 +15,8 @@ String _formatTime(DateTime time) {
   int hour = time.hour;
   final minute = time.minute.toString().padLeft(2, '0');
   final period = hour >= 12 ? 'PM' : 'AM';
-  if (hour == 0) hour = 12;
+  if (hour == 0)
+    hour = 12;
   else if (hour > 12) hour -= 12;
   return '$hour:$minute $period';
 }
@@ -23,12 +25,27 @@ Future<void> _openWhatsAppPoll(
     String name, DateTime selectedTime, int duration) async {
   final endTime = selectedTime.add(Duration(hours: duration));
   const days = [
-    'Monday', 'Tuesday', 'Wednesday', 'Thursday',
-    'Friday', 'Saturday', 'Sunday',
+    'Monday',
+    'Tuesday',
+    'Wednesday',
+    'Thursday',
+    'Friday',
+    'Saturday',
+    'Sunday',
   ];
   const months = [
-    'January', 'February', 'March', 'April', 'May', 'June',
-    'July', 'August', 'September', 'October', 'November', 'December',
+    'January',
+    'February',
+    'March',
+    'April',
+    'May',
+    'June',
+    'July',
+    'August',
+    'September',
+    'October',
+    'November',
+    'December',
   ];
   final message =
       '$name\n${_formatTime(selectedTime)} - ${_formatTime(endTime)}\n'
@@ -48,8 +65,7 @@ class CourtDetailsScreen extends ConsumerStatefulWidget {
   const CourtDetailsScreen({super.key, required this.court});
 
   @override
-  ConsumerState<CourtDetailsScreen> createState() =>
-      _CourtDetailsScreenState();
+  ConsumerState<CourtDetailsScreen> createState() => _CourtDetailsScreenState();
 }
 
 class _CourtDetailsScreenState extends ConsumerState<CourtDetailsScreen> {
@@ -86,6 +102,16 @@ class _CourtDetailsScreenState extends ConsumerState<CourtDetailsScreen> {
       return;
     }
 
+    final userPhone = Supabase.instance.client.auth.currentUser?.phone;
+    if (userPhone == null || userPhone.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Could not find your phone number on this account'),
+        ),
+      );
+      return;
+    }
+
     final repo = ref.read(reservationRepositoryProvider);
 
     final hasBooking = await repo.hasActiveBooking(userId);
@@ -110,8 +136,8 @@ class _CourtDetailsScreenState extends ConsumerState<CourtDetailsScreen> {
     if (!isAvailable) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-            content: Text(
-                'Slot no longer available. Please choose another time.')),
+            content:
+                Text('Slot no longer available. Please choose another time.')),
       );
       return;
     }
@@ -121,6 +147,7 @@ class _CourtDetailsScreenState extends ConsumerState<CourtDetailsScreen> {
           _selectedDuration == 2 ? _selectedPrice2! : _selectedPrice1!;
       await repo.createReservation(
         userId: userId,
+        phone: userPhone,
         courtId: widget.court.id,
         date: _selectedTimeSlot!.toIso8601String().split('T')[0],
         startTime:
@@ -188,8 +215,7 @@ class _CourtDetailsScreenState extends ConsumerState<CourtDetailsScreen> {
                               widget.court.category),
                           _infoRow(Icons.location_on, 'Location',
                               widget.court.location),
-                          _infoRow(
-                              Icons.phone, 'Phone', widget.court.phone),
+                          _infoRow(Icons.phone, 'Phone', widget.court.phone),
                           const SizedBox(height: 10),
                           SizedBox(
                             width: double.infinity,
@@ -243,7 +269,8 @@ class _CourtDetailsScreenState extends ConsumerState<CourtDetailsScreen> {
         decoration: BoxDecoration(
           color: Theme.of(context).scaffoldBackgroundColor,
           boxShadow: const [
-            BoxShadow(color: Colors.black12, blurRadius: 10, offset: Offset(0, -2))
+            BoxShadow(
+                color: Colors.black12, blurRadius: 10, offset: Offset(0, -2))
           ],
         ),
         child: Row(
@@ -299,8 +326,7 @@ class _CourtDetailsScreenState extends ConsumerState<CourtDetailsScreen> {
                         if (!context.mounted) return;
                         Navigator.push(
                           context,
-                          MaterialPageRoute(
-                              builder: (_) => LoginCheckScreen()),
+                          MaterialPageRoute(builder: (_) => LoginCheckScreen()),
                         );
                         return;
                       }
@@ -318,8 +344,7 @@ class _CourtDetailsScreenState extends ConsumerState<CourtDetailsScreen> {
                               Text(
                                   'Date: ${_selectedTimeSlot!.day}/${_selectedTimeSlot!.month}/${_selectedTimeSlot!.year}'),
                               const SizedBox(height: 8),
-                              Text(
-                                  'Time: ${_formatTime(_selectedTimeSlot!)}'),
+                              Text('Time: ${_formatTime(_selectedTimeSlot!)}'),
                               const SizedBox(height: 8),
                               Text(
                                   'Duration: $_selectedDuration Hour${_selectedDuration > 1 ? "s" : ""}'),
@@ -331,15 +356,13 @@ class _CourtDetailsScreenState extends ConsumerState<CourtDetailsScreen> {
                           ),
                           actions: [
                             TextButton(
-                              onPressed: () =>
-                                  Navigator.of(context).pop(false),
+                              onPressed: () => Navigator.of(context).pop(false),
                               child: const Text('Cancel'),
                             ),
                             ElevatedButton(
                               style: ElevatedButton.styleFrom(
                                   backgroundColor: ehjezGreen),
-                              onPressed: () =>
-                                  Navigator.of(context).pop(true),
+                              onPressed: () => Navigator.of(context).pop(true),
                               child: const Text('Confirm',
                                   style: TextStyle(color: Colors.white)),
                             ),
@@ -367,8 +390,8 @@ class _CourtDetailsScreenState extends ConsumerState<CourtDetailsScreen> {
           const SizedBox(width: 12),
           Expanded(
             child: Text(value,
-                style: const TextStyle(
-                    fontSize: 15, fontWeight: FontWeight.bold)),
+                style:
+                    const TextStyle(fontSize: 15, fontWeight: FontWeight.bold)),
           ),
         ],
       ),

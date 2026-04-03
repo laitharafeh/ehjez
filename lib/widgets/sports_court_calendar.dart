@@ -38,6 +38,8 @@ class _SportsCourtCalendarState extends ConsumerState<SportsCourtCalendar> {
   int? _numberOfFields;
   // Working days — populated from DB. Defaults to all days until loaded.
   List<int> _workingDays = [1, 2, 3, 4, 5, 6, 7];
+  // Specific vacation/closed dates set by the admin
+  Set<DateTime> _vacationDays = {};
 
   @override
   void initState() {
@@ -47,20 +49,59 @@ class _SportsCourtCalendarState extends ConsumerState<SportsCourtCalendar> {
     _fetchCourtData();
   }
 
+  DateTime _normaliseDate(DateTime d) => DateTime(d.year, d.month, d.day);
+
+  bool _isVacationDay(DateTime day) =>
+      _vacationDays.contains(_normaliseDate(day));
+
+  Widget _buildClosedDayCell(DateTime day, {required bool isOutside}) {
+    return Center(
+      child: Container(
+        width: 36,
+        height: 36,
+        alignment: Alignment.center,
+        decoration: BoxDecoration(
+          color: Colors.red.shade50,
+          shape: BoxShape.circle,
+          border: Border.all(
+            color: isOutside ? Colors.red.shade100 : Colors.red.shade200,
+            width: 1.2,
+          ),
+        ),
+        child: Text(
+          '${day.day}',
+          style: TextStyle(
+            color: isOutside ? Colors.red.shade200 : Colors.red.shade300,
+            fontSize: 14,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// A day is disabled if it's a non-working weekday OR a specific vacation date.
+  bool _isDayEnabled(DateTime day) {
+    if (!_workingDays.contains(day.weekday)) return false;
+    if (_isVacationDay(day)) return false;
+    return true;
+  }
+
   Future<void> _fetchCourtData() async {
     setState(() => _isLoading = true);
     try {
       final repo = ref.read(courtRepositoryProvider);
-      final reservationRepo = ref.read(reservationRepositoryProvider);
 
-      // Fetch court timing + size data in parallel
+      // Fetch court data, sizes, and vacation days in parallel
       final results = await Future.wait([
         repo.fetchCourtById(widget.courtId),
         repo.fetchCourtSizePrices(widget.courtId),
+        repo.fetchVacationDays(widget.courtId),
       ]);
 
       final court = results[0] as dynamic;
       final sizes = results[1] as dynamic;
+      final vacationDays = results[2] as Set<DateTime>;
 
       // Process timings
       final startTimeStr = court.startTime as String?;
@@ -81,13 +122,15 @@ class _SportsCourtCalendarState extends ConsumerState<SportsCourtCalendar> {
           ? court.workingDays
           : [1, 2, 3, 4, 5, 6, 7];
 
-      // If today is a closed day, advance _selectedDay to the next open day
-      // so the calendar doesn't open on a greyed-out date.
-      if (!_workingDays.contains(_selectedDay?.weekday)) {
+      // Vacation days
+      _vacationDays = vacationDays;
+
+      // If today is disabled (closed weekday or vacation), advance to next open day
+      if (!_isDayEnabled(_selectedDay ?? DateTime.now())) {
         DateTime candidate = _selectedDay ?? DateTime.now();
-        for (int i = 1; i <= 7; i++) {
+        for (int i = 1; i <= 365; i++) {
           candidate = candidate.add(const Duration(days: 1));
-          if (_workingDays.contains(candidate.weekday)) {
+          if (_isDayEnabled(candidate)) {
             _selectedDay = candidate;
             _focusedDay = candidate;
             break;
@@ -184,8 +227,7 @@ class _SportsCourtCalendarState extends ConsumerState<SportsCourtCalendar> {
     final reservedTimes =
         _reservations[DateTime(day.year, day.month, day.day)] ?? [];
 
-    // ── Build a booking-count map in a single O(n) pass ──────────────────────
-    // Key: hour of day (0–23), Value: number of active bookings during that hour
+    // O(n) booking-count map
     final Map<int, int> bookingsPerHour = {};
     for (final r in reservedTimes) {
       final rStart = r['start_time'] as DateTime;
@@ -195,7 +237,6 @@ class _SportsCourtCalendarState extends ConsumerState<SportsCourtCalendar> {
         bookingsPerHour[hour] = (bookingsPerHour[hour] ?? 0) + 1;
       }
     }
-    // ─────────────────────────────────────────────────────────────────────────
 
     final slots = <Map<String, dynamic>>[];
     var currentTime = dayStart;
@@ -213,7 +254,6 @@ class _SportsCourtCalendarState extends ConsumerState<SportsCourtCalendar> {
       final slotEnd = currentTime.add(Duration(hours: _selectedDuration));
       if (_selectedDuration == 2 && slotEnd.isAfter(dayEnd)) break;
 
-      // ── O(duration) lookup — max 2 iterations ────────────────────────────
       bool isAvailable = true;
       for (int h = 0; h < _selectedDuration; h++) {
         final hour = (currentTime.hour + h) % 24;
@@ -222,7 +262,6 @@ class _SportsCourtCalendarState extends ConsumerState<SportsCourtCalendar> {
           break;
         }
       }
-      // ─────────────────────────────────────────────────────────────────────
 
       slots.add({'time': currentTime, 'isAvailable': isAvailable});
       currentTime = currentTime.add(const Duration(hours: 1));
@@ -245,9 +284,13 @@ class _SportsCourtCalendarState extends ConsumerState<SportsCourtCalendar> {
   Widget build(BuildContext context) {
     if (_isLoading) return const Center(child: CircularProgressIndicator());
 
+    final selectedDayIsVacation = _selectedDay != null &&
+        _vacationDays.contains(_normaliseDate(_selectedDay!));
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
+        // Size selector
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16),
           child: Text('Sizes',
@@ -290,14 +333,16 @@ class _SportsCourtCalendarState extends ConsumerState<SportsCourtCalendar> {
             padding: EdgeInsets.symmetric(horizontal: 16),
             child: Text('No sizes available for this court'),
           ),
+
+        // Calendar — vacation days and non-working days greyed out
         TableCalendar(
           availableGestures: AvailableGestures.horizontalSwipe,
           firstDay: DateTime.now(),
           lastDay: DateTime.now().add(const Duration(days: 30)),
           focusedDay: _focusedDay,
           selectedDayPredicate: (day) => isSameDay(_selectedDay, day),
-          // Disable days the facility doesn't work — greyed out, not tappable
-          enabledDayPredicate: (day) => _workingDays.contains(day.weekday),
+          // Block non-working weekdays AND vacation days
+          enabledDayPredicate: _isDayEnabled,
           onDaySelected: (selectedDay, focusedDay) {
             setState(() {
               _selectedDay = selectedDay;
@@ -312,14 +357,55 @@ class _SportsCourtCalendarState extends ConsumerState<SportsCourtCalendar> {
             markersMaxCount: 0,
             selectedDecoration: const BoxDecoration(
                 color: Color(0xFF068631), shape: BoxShape.circle),
-            // Closed days are visually muted so users understand why
-            disabledTextStyle:
-                TextStyle(color: Colors.grey[400], fontSize: 14),
+            // Both closed weekdays and vacation days use the same muted style
+            disabledTextStyle: TextStyle(color: Colors.grey[400], fontSize: 14),
+          ),
+          calendarBuilders: CalendarBuilders(
+            disabledBuilder: (context, day, focusedDay) {
+              if (_isVacationDay(day)) {
+                return _buildClosedDayCell(day, isOutside: false);
+              }
+              return null;
+            },
+            outsideBuilder: (context, day, focusedDay) {
+              if (_isVacationDay(day)) {
+                return _buildClosedDayCell(day, isOutside: true);
+              }
+              return null;
+            },
           ),
           availableCalendarFormats: const {CalendarFormat.month: 'Month'},
           calendarFormat: CalendarFormat.month,
           onFormatChanged: null,
         ),
+
+        // Vacation day notice (shouldn't normally show since day is disabled,
+        // but guards against edge cases like same-day vacation set after load)
+        if (selectedDayIsVacation)
+          Container(
+            margin: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              color: Colors.orange.shade50,
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: Colors.orange.shade200),
+            ),
+            child: Row(
+              children: [
+                Icon(Icons.beach_access,
+                    color: Colors.orange.shade600, size: 16),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    'This facility is closed on this date.',
+                    style:
+                        TextStyle(color: Colors.orange.shade800, fontSize: 13),
+                  ),
+                ),
+              ],
+            ),
+          ),
+
         const Divider(),
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -360,7 +446,11 @@ class _SportsCourtCalendarState extends ConsumerState<SportsCourtCalendar> {
             ],
           ),
         ),
-        if (_selectedDay != null && _selectedSize != null) ...[
+
+        // Time slots — hidden entirely if the day is a vacation day
+        if (_selectedDay != null &&
+            _selectedSize != null &&
+            !selectedDayIsVacation) ...[
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16),
             child: Text(
@@ -416,7 +506,14 @@ class _SportsCourtCalendarState extends ConsumerState<SportsCourtCalendar> {
               ),
             );
           }),
-        ] else
+        ] else if (_selectedDay != null &&
+            _selectedSize != null &&
+            selectedDayIsVacation)
+          const Padding(
+            padding: EdgeInsets.symmetric(horizontal: 16),
+            child: Text('No bookings available on this date.'),
+          )
+        else
           const Padding(
             padding: EdgeInsets.symmetric(horizontal: 16),
             child: Text('Select a day and size to view available slots'),
