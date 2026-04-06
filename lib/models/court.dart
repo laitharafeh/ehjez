@@ -13,6 +13,7 @@ class Court {
   // Working days as a list of DateTime.weekday integers (1=Mon … 7=Sun).
   // Defaults to all 7 days so existing courts are unaffected.
   final List<int> workingDays;
+  final String? locationUrl;
 
   const Court({
     required this.id,
@@ -27,6 +28,7 @@ class Court {
     this.startTime,
     this.endTime,
     this.workingDays = const [1, 2, 3, 4, 5, 6, 7],
+    this.locationUrl,
   });
 
   factory Court.fromMap(Map<String, dynamic> map) {
@@ -49,6 +51,7 @@ class Court {
       startTime: map['start_time'] as String?,
       endTime: map['end_time'] as String?,
       workingDays: workingDays,
+      locationUrl: map['location_url'] as String?,
     );
   }
 

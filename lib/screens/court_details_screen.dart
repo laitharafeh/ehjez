@@ -174,8 +174,9 @@ class _CourtDetailsScreenState extends ConsumerState<CourtDetailsScreen> {
   }
 
   Future<void> _launchURL() async {
-    // TODO: replace hardcoded URL with court.mapsUrl from database
-    final uri = Uri.parse('https://maps.app.goo.gl/UTYee2MTPFi67wna9');
+    final url = widget.court.locationUrl;
+    if (url == null || url.isEmpty) return;
+    final uri = Uri.parse(url);
     if (await canLaunchUrl(uri)) {
       await launchUrl(uri, mode: LaunchMode.externalApplication);
     }
@@ -222,7 +223,7 @@ class _CourtDetailsScreenState extends ConsumerState<CourtDetailsScreen> {
                             child: ElevatedButton.icon(
                               onPressed: _launchURL,
                               icon: const Icon(Icons.map, color: Colors.white),
-                              label: const Text('Open in Maps',
+                              label: const Text('Get directions',
                                   style: TextStyle(color: Colors.white)),
                               style: ElevatedButton.styleFrom(
                                 backgroundColor: ehjezGreen,

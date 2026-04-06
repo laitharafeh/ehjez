@@ -1,3 +1,4 @@
+import 'package:ehjez/services/notification_service.dart';
 import 'package:ehjez/widgets/bottom_nav.dart';
 import '../screens/auth/login_check_screen.dart';
 import 'package:flutter/material.dart';
@@ -39,7 +40,13 @@ class _AuthCheckerState extends State<AuthChecker> {
         }
 
         final session = Supabase.instance.client.auth.currentSession;
-        return session != null ? const BottomNav() : LoginCheckScreen();
+        if (session != null) {
+          // Register (or refresh) the FCM token every time auth is confirmed.
+          // Fire-and-forget — never block navigation on this.
+          NotificationService.registerToken();
+          return const BottomNav();
+        }
+        return LoginCheckScreen();
       },
     );
   }

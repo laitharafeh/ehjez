@@ -1,17 +1,27 @@
 import 'package:ehjez/auth_checker.dart';
+import 'package:ehjez/firebase_options.dart';
+import 'package:ehjez/services/notification_service.dart';
+import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'keys.dart';
 
 Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+
+  // Firebase must be initialized before Supabase and before runApp.
+  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+
   await Supabase.initialize(
     url: 'https://bjijwzpkctdodimnlhxk.supabase.co',
     anonKey: supabaseAnonKey,
   );
+
+  // Set up notification channels, permissions and foreground handlers.
+  await NotificationService.initialize();
+
   runApp(
-    // ProviderScope is required — it's the container for all Riverpod state.
-    // Wrap the entire app so every widget can access providers.
     const ProviderScope(
       child: MyApp(),
     ),
