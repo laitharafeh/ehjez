@@ -98,10 +98,13 @@ class BookingsScreen extends ConsumerWidget {
 
     if (confirmed != true) return;
 
+    final userId = ref.read(currentUserIdProvider);
+    if (userId == null) return;
+
     try {
       await ref
           .read(reservationRepositoryProvider)
-          .deleteReservation(booking.id);
+          .deleteReservation(booking.id, userId);
       // Invalidate so BookingsScreen auto-refreshes with the new list.
       ref.invalidate(userReservationsProvider);
     } catch (e) {

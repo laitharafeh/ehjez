@@ -40,14 +40,14 @@ class _ImageSliderState extends State<ImageSlider> {
                           },
                           errorBuilder: (context, error, stackTrace) {
                             return Image.asset(
-                              "lib/assets/football2.jpg",
+                              "assets/football2.jpg",
                               fit: BoxFit.cover,
                               width: double.infinity,
                             );
                           },
                         )
                       : Image.asset(
-                          "lib/assets/football2.jpg",
+                          "assets/football2.jpg",
                           fit: BoxFit.cover,
                           width: double.infinity,
                         ),

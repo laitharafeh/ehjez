@@ -46,7 +46,7 @@ class ReservationRepository {
     required int duration,
     required String size,
     required int price,
-    required double commission,
+    int? promoCodeId,
   }) async {
     await _supabase.from('reservations').insert({
       'user_id': userId,
@@ -57,12 +57,56 @@ class ReservationRepository {
       'duration': duration,
       'size': size,
       'price': price,
-      'commission': commission,
+      if (promoCodeId != null) 'promo_code_id': promoCodeId,
+      // commission is calculated server-side via DB trigger
     });
   }
 
-  Future<void> deleteReservation(int reservationId) async {
-    await _supabase.from('reservations').delete().eq('id', reservationId);
+  /// Validates a promo code for a given court.
+  /// Returns the promo row if valid, null otherwise.
+  Future<Map<String, dynamic>?> validatePromoCode(
+      String courtId, String code) async {
+    final response = await _supabase
+        .from('promo_codes')
+        .select()
+        .eq('court_id', courtId)
+        .eq('code', code.toUpperCase().trim())
+        .eq('is_active', true)
+        .maybeSingle();
+
+    if (response == null) return null;
+
+    final validFrom = response['valid_from'] as String?;
+    if (validFrom != null &&
+        DateTime.now().isBefore(DateTime.parse(validFrom))) return null;
+
+    final validUntil = response['valid_until'] as String?;
+    if (validUntil != null &&
+        DateTime.now().isAfter(DateTime.parse(validUntil))) return null;
+
+    final maxUses = response['max_uses'] as int?;
+    final usesCount = response['uses_count'] as int? ?? 0;
+    if (maxUses != null && usesCount >= maxUses) return null;
+
+    return response;
+  }
+
+  int applyPromoDiscount(int price, Map<String, dynamic> promo) {
+    final type = promo['type'] as String;
+    final value = (promo['value'] as num).toDouble();
+    if (type == 'percent') {
+      return (price * (1 - value / 100)).round();
+    } else {
+      return (price - value).round().clamp(0, price);
+    }
+  }
+
+  Future<void> deleteReservation(int reservationId, String userId) async {
+    await _supabase
+        .from('reservations')
+        .delete()
+        .eq('id', reservationId)
+        .eq('user_id', userId);
   }
 
   /// Checks whether a given time slot is available for booking.
@@ -81,8 +125,9 @@ class ReservationRepository {
           .select('number_of_fields')
           .eq('court_id', courtId)
           .eq('size', size)
-          .single();
+          .maybeSingle();
 
+      if (sizeResponse == null) return false;
       final numberOfFields = sizeResponse['number_of_fields'] as int?;
       if (numberOfFields == null || numberOfFields <= 0) return false;
 
@@ -94,8 +139,9 @@ class ReservationRepository {
           .eq('size', size);
 
       final reservations = (rawReservations as List).map((r) {
-        final h = int.parse(r['start_time'].split(':')[0]);
-        final m = int.parse(r['start_time'].split(':')[1]);
+        final parts = (r['start_time'] as String).split(':');
+        final h = int.tryParse(parts.isNotEmpty ? parts[0] : '0') ?? 0;
+        final m = int.tryParse(parts.length > 1 ? parts[1] : '0') ?? 0;
         return {
           'start_time': DateTime(
               selectedTime.year, selectedTime.month, selectedTime.day, h, m),

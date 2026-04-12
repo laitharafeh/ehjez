@@ -8,7 +8,7 @@
 PRODUCT_NAME = ehjez
 
 // The application's bundle identifier
-PRODUCT_BUNDLE_IDENTIFIER = com.example.ehjez
+PRODUCT_BUNDLE_IDENTIFIER = com.ehjez.jordan
 
 // The copyright displayed in application information
 PRODUCT_COPYRIGHT = Copyright © 2025 com.example. All rights reserved.

@@ -55,7 +55,8 @@ class CourtRepository {
         .select()
         .eq('court_id', courtId)
         .eq('size', size)
-        .single();
+        .maybeSingle();
+    if (response == null) throw Exception('No pricing found for size $size');
     return CourtSizePrice.fromMap(response);
   }
 
@@ -64,7 +65,8 @@ class CourtRepository {
         .from('courts')
         .select()
         .eq('id', courtId)
-        .single();
+        .maybeSingle();
+    if (response == null) throw Exception('Court not found');
     return Court.fromMap(response);
   }
 

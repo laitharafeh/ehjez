@@ -109,8 +109,10 @@ class _SportsCourtCalendarState extends ConsumerState<SportsCourtCalendar> {
       if (startTimeStr != null && endTimeStr != null) {
         final now = DateTime.now();
         _isEndTimeSpecial = endTimeStr == '23:59:59';
-        final startHour = int.parse(startTimeStr.split(':')[0]);
-        final endHour = int.parse(endTimeStr.split(':')[0]);
+        final startParts = startTimeStr.split(':');
+        final endParts = endTimeStr.split(':');
+        final startHour = int.tryParse(startParts.isNotEmpty ? startParts[0] : '0') ?? 0;
+        final endHour = int.tryParse(endParts.isNotEmpty ? endParts[0] : '0') ?? 0;
         _courtStartTime = DateTime(now.year, now.month, now.day, startHour);
         _courtEndTime = endHour >= startHour
             ? DateTime(now.year, now.month, now.day, endHour)
@@ -183,8 +185,9 @@ class _SportsCourtCalendarState extends ConsumerState<SportsCourtCalendar> {
       for (final r in raw) {
         final date = DateTime.parse(r['date']);
         final parts = (r['start_time'] as String).split(':');
-        final startTime = DateTime(date.year, date.month, date.day,
-            int.parse(parts[0]), int.parse(parts[1]));
+        final hour = int.tryParse(parts.isNotEmpty ? parts[0] : '0') ?? 0;
+        final minute = int.tryParse(parts.length > 1 ? parts[1] : '0') ?? 0;
+        final startTime = DateTime(date.year, date.month, date.day, hour, minute);
         final key = DateTime(date.year, date.month, date.day);
         _reservations[key] ??= [];
         _reservations[key]!.add({

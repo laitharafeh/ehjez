@@ -77,10 +77,10 @@ class ProfileScreen extends StatelessWidget {
               _SectionCard(
                 children: [
                   _InfoTile(
-                    icon: Icons.email_outlined,
+                    icon: Icons.phone_outlined,
                     iconColor: Colors.grey[600]!,
                     label: 'Contact us',
-                    value: 'support@ehjez.jo',
+                    value: '+962 7 8889 5721',
                   ),
                 ],
               ),
@@ -138,10 +138,10 @@ class ProfileScreen extends StatelessWidget {
               _SectionCard(
                 children: [
                   _InfoTile(
-                    icon: Icons.email_outlined,
+                    icon: Icons.phone_outlined,
                     iconColor: Colors.grey[600]!,
                     label: 'Contact us',
-                    value: 'support@ehjez.jo',
+                    value: '+962 7 8889 5721',
                   ),
                 ],
               ),

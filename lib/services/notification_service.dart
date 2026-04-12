@@ -87,6 +87,21 @@ class NotificationService {
       final phone = user.phone;
       if (phone == null || phone.isEmpty) return;
 
+      // On iOS, the APNs token may not be ready immediately after launch.
+      // Wait for it before asking FCM for its token.
+      if (defaultTargetPlatform == TargetPlatform.iOS) {
+        String? apnsToken;
+        for (int i = 0; i < 5; i++) {
+          apnsToken = await _messaging.getAPNSToken();
+          if (apnsToken != null) break;
+          await Future.delayed(const Duration(seconds: 2));
+        }
+        if (apnsToken == null) {
+          debugPrint('[FCM] APNs token unavailable after retries — skipping token registration');
+          return;
+        }
+      }
+
       final token = await _messaging.getToken();
       if (token == null) return;
 

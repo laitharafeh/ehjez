@@ -3,8 +3,10 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/court.dart';
 import '../models/court_size_price.dart';
 import '../models/reservation.dart';
+import '../models/tournament.dart';
 import '../repositories/court_repository.dart';
 import '../repositories/reservation_repository.dart';
+import '../repositories/tournament_repository.dart';
 
 // ─── Infrastructure ──────────────────────────────────────────────────────────
 
@@ -19,6 +21,11 @@ final courtRepositoryProvider = Provider<CourtRepository>(
 final reservationRepositoryProvider = Provider<ReservationRepository>(
   (ref) => ReservationRepository(ref.watch(supabaseProvider)),
 );
+
+final tournamentRepositoryProvider = Provider<TournamentRepository>(
+  (ref) => TournamentRepository(ref.watch(supabaseProvider)),
+);
+
 
 // ─── Auth ─────────────────────────────────────────────────────────────────────
 //
@@ -208,6 +215,10 @@ final searchProvider =
     NotifierProvider<SearchNotifier, SearchState>(SearchNotifier.new);
 
 // ─── Reservations ─────────────────────────────────────────────────────────────
+
+final activeTournamentsProvider = FutureProvider<List<Tournament>>(
+  (ref) => ref.watch(tournamentRepositoryProvider).fetchActiveTournaments(),
+);
 
 final userReservationsProvider = FutureProvider<List<Reservation>>((ref) async {
   final userId = ref.watch(currentUserIdProvider);

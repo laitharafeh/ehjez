@@ -93,7 +93,7 @@ class _CourtDetailsScreenState extends ConsumerState<CourtDetailsScreen> {
     }
   }
 
-  Future<void> _makeReservation() async {
+  Future<void> _makeReservation({int? promoCodeId, int? finalPrice}) async {
     final userId = ref.read(currentUserIdProvider);
     if (userId == null) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -143,8 +143,14 @@ class _CourtDetailsScreenState extends ConsumerState<CourtDetailsScreen> {
     }
 
     try {
-      final price =
-          _selectedDuration == 2 ? _selectedPrice2! : _selectedPrice1!;
+      final basePrice =
+          _selectedDuration == 2 ? _selectedPrice2 : _selectedPrice1;
+      if (basePrice == null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Price unavailable. Please try again.')),
+        );
+        return;
+      }
       await repo.createReservation(
         userId: userId,
         phone: userPhone,
@@ -154,8 +160,8 @@ class _CourtDetailsScreenState extends ConsumerState<CourtDetailsScreen> {
             '${_selectedTimeSlot!.hour.toString().padLeft(2, '0')}:${_selectedTimeSlot!.minute.toString().padLeft(2, '0')}:00',
         duration: _selectedDuration,
         size: _selectedSize!,
-        price: price,
-        commission: price * 0.03,
+        price: finalPrice ?? basePrice,
+        promoCodeId: promoCodeId,
       );
       if (!mounted) return;
 
@@ -332,45 +338,156 @@ class _CourtDetailsScreenState extends ConsumerState<CourtDetailsScreen> {
                         return;
                       }
 
+                      // Capture promo result from dialog via closure
+                      Map<String, dynamic>? appliedPromo;
+
                       final confirm = await showDialog<bool>(
                         context: context,
-                        builder: (_) => AlertDialog(
-                          title: const Text('Confirm Reservation'),
-                          content: Column(
-                            mainAxisSize: MainAxisSize.min,
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text('Court: ${widget.court.name}'),
-                              const SizedBox(height: 8),
-                              Text(
-                                  'Date: ${_selectedTimeSlot!.day}/${_selectedTimeSlot!.month}/${_selectedTimeSlot!.year}'),
-                              const SizedBox(height: 8),
-                              Text('Time: ${_formatTime(_selectedTimeSlot!)}'),
-                              const SizedBox(height: 8),
-                              Text(
-                                  'Duration: $_selectedDuration Hour${_selectedDuration > 1 ? "s" : ""}'),
-                              const SizedBox(height: 8),
-                              Text('Size: $_selectedSize'),
-                              const SizedBox(height: 8),
-                              Text('Price: $_displayPrice JDs'),
-                            ],
-                          ),
-                          actions: [
-                            TextButton(
-                              onPressed: () => Navigator.of(context).pop(false),
-                              child: const Text('Cancel'),
-                            ),
-                            ElevatedButton(
-                              style: ElevatedButton.styleFrom(
-                                  backgroundColor: ehjezGreen),
-                              onPressed: () => Navigator.of(context).pop(true),
-                              child: const Text('Confirm',
-                                  style: TextStyle(color: Colors.white)),
-                            ),
-                          ],
-                        ),
+                        builder: (dialogCtx) {
+                          final promoController = TextEditingController();
+                          String? promoError;
+                          String? promoSuccess;
+                          bool isValidating = false;
+                          Map<String, dynamic>? localPromo;
+                          final repo = ref.read(reservationRepositoryProvider);
+
+                          return StatefulBuilder(
+                            builder: (ctx, setDialogState) {
+                              final discountedPrice = localPromo != null
+                                  ? repo.applyPromoDiscount(_displayPrice, localPromo!)
+                                  : _displayPrice;
+
+                              return AlertDialog(
+                                title: const Text('Confirm Reservation'),
+                                content: Column(
+                                  mainAxisSize: MainAxisSize.min,
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text('Court: ${widget.court.name}'),
+                                    const SizedBox(height: 8),
+                                    Text('Date: ${_selectedTimeSlot!.day}/${_selectedTimeSlot!.month}/${_selectedTimeSlot!.year}'),
+                                    const SizedBox(height: 8),
+                                    Text('Time: ${_formatTime(_selectedTimeSlot!)}'),
+                                    const SizedBox(height: 8),
+                                    Text('Duration: $_selectedDuration Hour${_selectedDuration > 1 ? "s" : ""}'),
+                                    const SizedBox(height: 8),
+                                    Text('Size: $_selectedSize'),
+                                    const SizedBox(height: 8),
+                                    if (localPromo != null) ...[
+                                      Text(
+                                        'Price: $_displayPrice JDs',
+                                        style: const TextStyle(
+                                          decoration: TextDecoration.lineThrough,
+                                          color: Colors.grey,
+                                        ),
+                                      ),
+                                      Text(
+                                        'Discounted: $discountedPrice JDs',
+                                        style: TextStyle(
+                                          color: ehjezGreen,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                    ] else
+                                      Text('Price: $_displayPrice JDs'),
+                                    const SizedBox(height: 16),
+                                    // ── Promo code field ──────────────────
+                                    Row(
+                                      children: [
+                                        Expanded(
+                                          child: TextField(
+                                            controller: promoController,
+                                            enabled: localPromo == null,
+                                            textCapitalization: TextCapitalization.characters,
+                                            decoration: InputDecoration(
+                                              hintText: 'Promo code',
+                                              isDense: true,
+                                              contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                                              border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                                              suffixIcon: localPromo != null
+                                                  ? const Icon(Icons.check_circle, color: Colors.green, size: 20)
+                                                  : null,
+                                            ),
+                                          ),
+                                        ),
+                                        const SizedBox(width: 8),
+                                        if (localPromo == null)
+                                          SizedBox(
+                                            height: 38,
+                                            child: ElevatedButton(
+                                              style: ElevatedButton.styleFrom(
+                                                backgroundColor: ehjezGreen,
+                                                padding: const EdgeInsets.symmetric(horizontal: 12),
+                                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                                              ),
+                                              onPressed: isValidating ? null : () async {
+                                                final code = promoController.text.trim();
+                                                if (code.isEmpty) return;
+                                                setDialogState(() {
+                                                  isValidating = true;
+                                                  promoError = null;
+                                                  promoSuccess = null;
+                                                });
+                                                final result = await repo.validatePromoCode(widget.court.id, code);
+                                                setDialogState(() {
+                                                  isValidating = false;
+                                                  if (result != null) {
+                                                    localPromo = result;
+                                                    promoSuccess = result['type'] == 'percent'
+                                                        ? '${result['value']}% off applied!'
+                                                        : '${result['value'].toInt()} JD off applied!';
+                                                    promoError = null;
+                                                  } else {
+                                                    promoError = 'Invalid or expired code';
+                                                  }
+                                                });
+                                              },
+                                              child: isValidating
+                                                  ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                                                  : const Text('Apply', style: TextStyle(color: Colors.white, fontSize: 13)),
+                                            ),
+                                          ),
+                                      ],
+                                    ),
+                                    if (promoError != null) ...[
+                                      const SizedBox(height: 4),
+                                      Text(promoError!, style: const TextStyle(color: Colors.red, fontSize: 12)),
+                                    ],
+                                    if (promoSuccess != null) ...[
+                                      const SizedBox(height: 4),
+                                      Text(promoSuccess!, style: TextStyle(color: ehjezGreen, fontSize: 12, fontWeight: FontWeight.w600)),
+                                    ],
+                                  ],
+                                ),
+                                actions: [
+                                  TextButton(
+                                    onPressed: () => Navigator.of(dialogCtx).pop(false),
+                                    child: const Text('Cancel'),
+                                  ),
+                                  ElevatedButton(
+                                    style: ElevatedButton.styleFrom(backgroundColor: ehjezGreen),
+                                    onPressed: () {
+                                      appliedPromo = localPromo;
+                                      Navigator.of(dialogCtx).pop(true);
+                                    },
+                                    child: const Text('Confirm', style: TextStyle(color: Colors.white)),
+                                  ),
+                                ],
+                              );
+                            },
+                          );
+                        },
                       );
-                      if (confirm == true) await _makeReservation();
+                      if (confirm == true) {
+                        final basePrice = _displayPrice;
+                        final finalPrice = appliedPromo != null
+                            ? ref.read(reservationRepositoryProvider).applyPromoDiscount(basePrice, appliedPromo!)
+                            : null;
+                        await _makeReservation(
+                          promoCodeId: appliedPromo?['id'] as int?,
+                          finalPrice: finalPrice,
+                        );
+                      }
                     }
                   : null,
               child: const Text('Confirm',

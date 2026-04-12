@@ -110,6 +110,6 @@ flutter:
   # see https://flutter.dev/to/font-from-package
 flutter_native_splash:
   color: "#ffffff"           # background color
-  image: assets/ahjez_appbar.png     # your app logo
+  image: assets/ehjez_appbar.png     # your app logo
   android: true
   ios: true

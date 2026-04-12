@@ -1,7 +1,7 @@
 import 'package:ehjez/models/court.dart';
 import 'package:ehjez/providers/providers.dart';
 import 'package:ehjez/screens/court_details_screen.dart';
-import 'package:ehjez/widgets/coming_soon_button.dart';
+import 'package:ehjez/screens/tournaments_screen.dart';
 import 'package:ehjez/widgets/custom_app_bar.dart';
 import 'package:ehjez/widgets/featured_court_list_tile.dart';
 import 'package:ehjez/widgets/home_text.dart';
@@ -215,7 +215,7 @@ class HomeScreen extends ConsumerWidget {
                 style: TextStyle(fontSize: 23, fontWeight: FontWeight.bold),
               ),
             ),
-            const ComingSoonButton(imagePath: 'assets/trophy.png'),
+            _TournamentsBanner(),
             const SizedBox(height: 28),
           ],
         ),
@@ -328,4 +328,88 @@ class _CategoryItem {
     required this.assetPath,
     required this.color,
   });
+}
+
+// ── Tournaments banner ────────────────────────────────────────────────────────
+
+class _TournamentsBanner extends ConsumerWidget {
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final tournamentsAsync = ref.watch(activeTournamentsProvider);
+    final count = tournamentsAsync.whenData((t) => t.length).value ?? 0;
+
+    return GestureDetector(
+      onTap: () => Navigator.push(
+        context,
+        MaterialPageRoute(builder: (_) => const TournamentsScreen()),
+      ),
+      child: Container(
+        height: 180,
+        margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(16),
+          image: const DecorationImage(
+            image: AssetImage('assets/trophy.png'),
+            fit: BoxFit.cover,
+          ),
+        ),
+        child: Stack(
+          children: [
+            Container(
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(16),
+                gradient: LinearGradient(
+                  colors: [
+                    Colors.black.withOpacity(0.65),
+                    Colors.black.withOpacity(0.3),
+                  ],
+                  begin: Alignment.bottomCenter,
+                  end: Alignment.topCenter,
+                ),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.all(20),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  if (count > 0)
+                    Container(
+                      margin: const EdgeInsets.only(bottom: 8),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 10, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF068631),
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      child: Text(
+                        '$count active tournament${count > 1 ? 's' : ''}',
+                        style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600),
+                      ),
+                    ),
+                  const Text(
+                    'Tournaments',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 22,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  const Text(
+                    'Register for upcoming tournaments',
+                    style: TextStyle(color: Colors.white70, fontSize: 13),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 }
